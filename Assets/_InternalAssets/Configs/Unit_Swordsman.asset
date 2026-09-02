@@ -13,15 +13,15 @@ MonoBehaviour:
   m_Name: Unit_Swordsman
   m_EditorClassIdentifier: 
   unitId: swordsman
-  displayName: Мечник
+  displayName: "\u041C\u0435\u0447\u043D\u0438\u043A"
   icon: {fileID: 0}
-  prefab: {fileID: 0}
+  prefab: {fileID: 2420842358163579246, guid: 16bd28d922881b94b95954d5a3114fed, type: 3}
   cost: 60
-  spawnTime: 2.0
+  spawnTime: 2
   maxHealth: 100
   damagePerHit: 10
   attackInterval: 0.5
-  attackRange: 2.0
+  attackRange: 2
   armor: 0
   moveSpeed: 4.5
   turnSpeed: 360

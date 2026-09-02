@@ -23,8 +23,8 @@ namespace FishNet.Example.ColliderRollbacks
             if (!IsOwner || PlayerCamera == null)
                 return;
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            //Cursor.lockState = CursorLockMode.Locked;
+            //Cursor.visible = false;
             MoveAim();
             MoveCamera();
         }

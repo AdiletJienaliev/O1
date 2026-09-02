@@ -99,6 +99,29 @@ namespace Warlord.Gameplay.Heroes
                 _config = manager.Config.Hero;
         }
 
+        /// <summary>
+        /// Полководец локального игрока. Ставится на клиенте при получении владения —
+        /// иначе камера и HUD не смогли бы отличить свой объект от чужих. Тот же приём,
+        /// что и у <see cref="Warlord.Gameplay.Players.PlayerState.Local"/>.
+        /// </summary>
+        public static HeroController Local { get; private set; }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+
+            if (IsOwner)
+                Local = this;
+        }
+
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+
+            if (Local == this)
+                Local = null;
+        }
+
         public override void OnStartServer()
         {
             base.OnStartServer();
@@ -119,7 +142,7 @@ namespace Warlord.Gameplay.Heroes
 
         public override void CreateReconcile()
         {
-            PerformReconcile(new HeroReconcileData(transform.position, _verticalVelocity, IsAlive));
+            PerformReconcile(new HeroReconcileData(transform.position, transform.eulerAngles.y, _verticalVelocity, IsAlive));
         }
 
         private HeroReplicateData BuildInput()
@@ -183,21 +206,61 @@ namespace Warlord.Gameplay.Heroes
                 _verticalVelocity = Mathf.Sqrt(2f * gravity * config.jumpHeight);
             }
 
+            // Ввод нормализуем только когда он длиннее единицы: по диагонали скорость
+            // не должна расти, но короткие отклонения стика обязаны сохраняться.
+            Vector2 move = data.Move;
+            float amount = move.magnitude;
+
+            if (amount > 1f)
+            {
+                move /= amount;
+                amount = 1f;
+            }
+
+            // Оси камеры: W — от игрока вглубь экрана, S — на игрока, A и D — строго вбок.
+            Quaternion cameraYaw = Quaternion.Euler(0f, data.AimYaw, 0f);
+            Vector3 direction = cameraYaw * new Vector3(move.x, 0f, move.y);
+
             float speed = data.Sprint ? config.sprintSpeed : config.moveSpeed;
 
-            Vector3 input = new(data.Move.x, 0f, data.Move.y);
-            if (input.sqrMagnitude > 1f)
-                input.Normalize();
-
-            // Движение в осях камеры: WASD всегда относительно взгляда игрока.
-            Vector3 planar = Quaternion.Euler(0f, data.AimYaw, 0f) * input * speed;
-
-            Vector3 motion = planar;
+            Vector3 motion = direction * speed;
             motion.y = _verticalVelocity;
             characterController.Move(motion * delta);
 
-            if (planar.sqrMagnitude > 0.01f)
-                transform.rotation = Quaternion.LookRotation(new Vector3(planar.x, 0f, planar.z));
+            ApplyRotation(config, direction, amount, data.AimYaw, delta);
+        }
+
+        /// <summary>
+        /// Доворот тела. Отделён от перемещения намеренно: направление шага и направление
+        /// взгляда — разные вещи, и режим их связи задаётся конфигом (ГДД §8).
+        /// </summary>
+        private void ApplyRotation(HeroConfig config, Vector3 direction, float inputAmount, float aimYaw, float delta)
+        {
+            Vector3 facing;
+
+            if (config.rotationMode == HeroRotationMode.FaceCamera)
+            {
+                facing = Quaternion.Euler(0f, aimYaw, 0f) * Vector3.forward;
+            }
+            else
+            {
+                // Клавиши отпущены — сохраняем текущий разворот. Иначе полководец
+                // дёргался бы к направлению последнего кадра при каждой остановке.
+                if (inputAmount < 0.01f)
+                    return;
+
+                facing = direction;
+            }
+
+            facing.y = 0f;
+            if (facing.sqrMagnitude < 0.0001f)
+                return;
+
+            Quaternion target = Quaternion.LookRotation(facing);
+
+            transform.rotation = config.turnSpeed > 0f
+                ? Quaternion.RotateTowards(transform.rotation, target, config.turnSpeed * delta)
+                : target;
         }
 
         [Reconcile]
@@ -209,6 +272,7 @@ namespace Warlord.Gameplay.Heroes
             // останется в старой позиции до следующего Move.
             characterController.enabled = false;
             transform.position = data.Position;
+            transform.rotation = Quaternion.Euler(0f, data.Yaw, 0f);
             characterController.enabled = true;
         }
 

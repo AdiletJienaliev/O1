@@ -1,0 +1,419 @@
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using Warlord.UI.Widgets;
+
+namespace Warlord.EditorTools.UI
+{
+    /// <summary>
+    /// Переиспользуемые элементы HUD: карточка юнита, строка таблицы, слот очереди.
+    /// Каждый метод собирает готовый к сохранению префаб — раскладку экранов
+    /// собирает <see cref="WarlordUiBuilder"/> уже из них.
+    /// </summary>
+    public static class UiTemplates
+    {
+        #region Карточка юнита
+
+        public static GameObject UnitCard()
+        {
+            RectTransform root = Ui.Node("UI_UnitCard", null);
+            root.sizeDelta = new Vector2(184f, 226f);
+
+            Image frame = root.Sprite(Kit.ItemSlot, Color.white);
+            frame.raycastTarget = true;
+
+            Button button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = frame;
+            button.colors = CardColors();
+
+            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(92f, 92f));
+            icon.rectTransform.At(Ui.Top, new Vector2(0f, -26f), new Vector2(92f, 92f));
+
+            TextMeshProUGUI name = Ui.Label("Name", root, "Мечник", 24f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontTitle);
+            name.rectTransform.At(Ui.Top, new Vector2(0f, -126f), new Vector2(170f, 30f));
+
+            TextMeshProUGUI stats = Ui.Label("Stats", root, "100 HP · 10 урон", 16f, Ui.InkMuted, TextAlignmentOptions.Center);
+            stats.rectTransform.At(Ui.Top, new Vector2(0f, -154f), new Vector2(170f, 22f));
+
+            RectTransform costPill = Ui.Node("CostPill", root).At(Ui.Bottom, new Vector2(0f, 14f), new Vector2(126f, 42f));
+            costPill.Sprite(Kit.PillSmall, Color.white);
+
+            Image coin = Ui.Icon("Coin", costPill, Kit.ItemGold, new Vector2(28f, 28f));
+            coin.rectTransform.At(Ui.Left, new Vector2(12f, 0f), new Vector2(28f, 28f));
+
+            TextMeshProUGUI cost = Ui.Label("Cost", costPill, "60", 24f, Ui.Gold, TextAlignmentOptions.Left, Kit.FontNumbers);
+            cost.rectTransform.At(Ui.Left, new Vector2(46f, 0f), new Vector2(70f, 30f));
+
+            RectTransform locked = Ui.Node("Locked", root).Stretch(4f, 4f, 4f, 4f);
+            locked.Sprite(Kit.ItemSlotDim, new Color(1f, 1f, 1f, 0.82f));
+            locked.gameObject.SetActive(false);
+
+            UnitCardView view = root.gameObject.AddComponent<UnitCardView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("icon", icon)
+                    .Ref("nameLabel", name)
+                    .Ref("costLabel", cost)
+                    .Ref("statsLabel", stats)
+                    .Ref("button", button)
+                    .Ref("frame", frame)
+                    .Ref("lockedOverlay", locked.gameObject);
+            }
+
+            return root.gameObject;
+        }
+
+        private static ColorBlock CardColors()
+        {
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.1f, 1.1f, 1.1f, 1f);
+            colors.pressedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
+            colors.disabledColor = new Color(0.5f, 0.5f, 0.55f, 0.85f);
+            colors.fadeDuration = 0.08f;
+            return colors;
+        }
+
+        #endregion
+
+        #region Слот очереди постройки
+
+        public static GameObject SpawnQueueSlot()
+        {
+            RectTransform root = Ui.Node("UI_SpawnQueueSlot", null);
+            root.sizeDelta = new Vector2(74f, 74f);
+            root.Sprite(Kit.ItemSlotSmall, Color.white);
+
+            CanvasGroup group = root.Group();
+
+            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(46f, 46f));
+            icon.rectTransform.At(Ui.Center, new Vector2(0f, 6f), new Vector2(46f, 46f));
+
+            RectTransform barRoot = Ui.Node("Progress", root).At(Ui.Bottom, new Vector2(0f, 8f), new Vector2(56f, 8f));
+            barRoot.Sprite(Kit.ThinBarFrame, new Color(1f, 1f, 1f, 0.5f));
+
+            RectTransform fillRect = Ui.Node("Fill", barRoot).Stretch(2f, 2f, 2f, 2f);
+            Image fill = fillRect.Sprite(Kit.ThinBarFill, Ui.Gold);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillAmount = 0f;
+
+            TextMeshProUGUI eta = Ui.Label("Eta", root, "", 15f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            eta.rectTransform.At(Ui.Top, new Vector2(0f, -4f), new Vector2(60f, 20f));
+
+            SpawnQueueSlotView view = root.gameObject.AddComponent<SpawnQueueSlotView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("icon", icon)
+                    .Ref("progressFill", fill)
+                    .Ref("etaLabel", eta)
+                    .Ref("group", group);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
+
+        #region Ветка прокачки
+
+        public static GameObject UpgradeBranch()
+        {
+            RectTransform root = Ui.Node("UI_UpgradeBranch", null);
+            root.sizeDelta = new Vector2(560f, 96f);
+            root.Sprite(Kit.ListRow, Color.white);
+
+            Image icon = Ui.Icon("Icon", root, Kit.IconAttack, new Vector2(54f, 54f));
+            icon.rectTransform.At(Ui.Left, new Vector2(22f, 0f), new Vector2(54f, 54f));
+
+            TextMeshProUGUI name = Ui.Label("Name", root, "Урон", 25f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.TopLeft, new Vector2(90f, -16f), new Vector2(240f, 28f));
+
+            TextMeshProUGUI description = Ui.Label("Description", root, "+8% к урону", 18f, Ui.InkMuted, TextAlignmentOptions.Left);
+            description.rectTransform.At(Ui.TopLeft, new Vector2(90f, -46f), new Vector2(300f, 22f));
+
+            RectTransform pips = Ui.Node("Pips", root).At(Ui.BottomLeft, new Vector2(90f, 12f), new Vector2(200f, 10f));
+            pips.Row(6f, TextAnchor.MiddleLeft);
+
+            RectTransform pipTemplate = Ui.Node("Pip", pips);
+            pipTemplate.sizeDelta = new Vector2(26f, 10f);
+            Image pip = pipTemplate.Sprite(Kit.PillSmall, new Color(1f, 1f, 1f, 0.25f));
+            pipTemplate.gameObject.SetActive(false);
+
+            Button buy = Ui.Button("Buy", root, Kit.ButtonGreen, Color.white, out _);
+            buy.GetComponent<RectTransform>().At(Ui.Right, new Vector2(-18f, 0f), new Vector2(126f, 60f));
+
+            Image expIcon = Ui.Icon("Exp", buy.transform, Kit.IconExp, new Vector2(26f, 26f));
+            expIcon.rectTransform.At(Ui.Left, new Vector2(14f, 0f), new Vector2(26f, 26f));
+
+            TextMeshProUGUI cost = Ui.Label("Cost", buy.transform, "60", 26f, Color.white, TextAlignmentOptions.Left, Kit.FontNumbers);
+            cost.rectTransform.At(Ui.Left, new Vector2(46f, 0f), new Vector2(70f, 32f));
+
+            RectTransform maxed = Ui.Node("Maxed", root).At(Ui.Right, new Vector2(-18f, 0f), new Vector2(126f, 60f));
+            maxed.Sprite(Kit.PillSmall, new Color(1f, 1f, 1f, 0.55f));
+            Ui.Label("Text", maxed, "MAX", 24f, Ui.Gold, TextAlignmentOptions.Center, Kit.FontTitle)
+                .rectTransform.Stretch();
+            maxed.gameObject.SetActive(false);
+
+            UpgradeBranchView view = root.gameObject.AddComponent<UpgradeBranchView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("icon", icon)
+                    .Ref("nameLabel", name)
+                    .Ref("descriptionLabel", description)
+                    .Ref("pipContainer", pips)
+                    .Ref("pipTemplate", pip)
+                    .Ref("buyButton", buy)
+                    .Ref("costLabel", cost)
+                    .Ref("maxedBadge", maxed.gameObject);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
+
+        #region Строка гонки за флаг
+
+        public static GameObject FlagHoldRow()
+        {
+            RectTransform root = Ui.Node("UI_FlagHoldRow", null);
+            root.sizeDelta = new Vector2(430f, 50f);
+            root.Sprite(Kit.ListRowFlat, new Color(1f, 1f, 1f, 0.9f));
+
+            CanvasGroup group = root.Group();
+
+            RectTransform tab = Ui.Node("ColorTab", root).At(Ui.Left, new Vector2(10f, 0f), new Vector2(8f, 30f));
+            Image colorTab = tab.Sprite(Kit.PillSmall, Color.white);
+
+            Image sigil = Ui.Icon("Sigil", root, null, new Vector2(24f, 24f));
+            sigil.rectTransform.At(Ui.Left, new Vector2(26f, 0f), new Vector2(24f, 24f));
+            sigil.enabled = false;
+
+            TextMeshProUGUI name = Ui.Label("Name", root, "Игрок 1", 20f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.Left, new Vector2(58f, 0f), new Vector2(120f, 26f));
+
+            RectTransform barRoot = Ui.Node("Bar", root).At(Ui.Left, new Vector2(180f, 0f), new Vector2(160f, 16f));
+            barRoot.Sprite(Kit.BarFrame, Color.white);
+
+            RectTransform fillRect = Ui.Node("Fill", barRoot).Stretch(3f, 3f, 3f, 3f);
+            Image fill = fillRect.Sprite(Kit.BarFillGreen, Color.white);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillAmount = 0f;
+
+            TextMeshProUGUI time = Ui.Label("Time", root, "00:00", 20f, Ui.Ink, TextAlignmentOptions.Right, Kit.FontNumbers);
+            time.rectTransform.At(Ui.Right, new Vector2(-14f, 0f), new Vector2(78f, 26f));
+
+            Image holding = Ui.Icon("Holding", root, Kit.ItemFlag, new Vector2(24f, 24f));
+            holding.rectTransform.At(Ui.Right, new Vector2(-96f, 0f), new Vector2(24f, 24f));
+            holding.gameObject.SetActive(false);
+
+            Image eliminated = Ui.Icon("Eliminated", root, Kit.ItemSkull, new Vector2(22f, 22f));
+            eliminated.rectTransform.At(Ui.Right, new Vector2(-96f, 0f), new Vector2(22f, 22f));
+            eliminated.gameObject.SetActive(false);
+
+            FlagRaceRowView view = root.gameObject.AddComponent<FlagRaceRowView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("colorTab", colorTab)
+                    .Ref("sigil", sigil)
+                    .Ref("fill", fill)
+                    .Ref("nameLabel", name)
+                    .Ref("timeLabel", time)
+                    .Ref("holdingBadge", holding.gameObject)
+                    .Ref("eliminatedBadge", eliminated.gameObject)
+                    .Ref("group", group);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
+
+        #region Кнопка приказа
+
+        public static GameObject OrderButton()
+        {
+            RectTransform root = Ui.Node("UI_OrderButton", null);
+            root.sizeDelta = new Vector2(112f, 112f);
+
+            // Рамка выбора лежит под фоном и выступает за него на несколько пикселей:
+            // видна ровно каёмка, а середину закрывает сама кнопка.
+            RectTransform selected = Ui.Node("Selected", root).Stretch(-7f, -7f, -7f, -7f);
+            selected.Sprite(Kit.Square, Ui.Gold);
+            selected.gameObject.SetActive(false);
+
+            RectTransform backgroundRect = Ui.Node("Background", root).Stretch();
+            Image background = backgroundRect.Sprite(Kit.ButtonSquare, Color.white);
+            background.raycastTarget = true;
+
+            Button button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            button.colors = CardColors();
+
+            Image icon = Ui.Icon("Icon", root, Kit.IconSword, new Vector2(50f, 50f));
+            icon.rectTransform.At(Ui.Center, new Vector2(0f, 12f), new Vector2(50f, 50f));
+
+            TextMeshProUGUI label = Ui.Label("Label", root, "Стоять", 18f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontTitle);
+            label.rectTransform.At(Ui.Bottom, new Vector2(0f, 12f), new Vector2(104f, 22f));
+
+            RectTransform hotkeyPill = Ui.Node("Hotkey", root).At(Ui.TopRight, new Vector2(-4f, -4f), new Vector2(30f, 30f));
+            hotkeyPill.Sprite(Kit.CircleSmall, Color.white);
+
+            TextMeshProUGUI hotkey = Ui.Label("Text", hotkeyPill, "1", 18f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            hotkey.rectTransform.Stretch();
+
+            HotkeyButtonView view = root.gameObject.AddComponent<HotkeyButtonView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("icon", icon)
+                    .Ref("label", label)
+                    .Ref("hotkeyLabel", hotkey)
+                    .Ref("button", button)
+                    .Ref("background", background)
+                    .Ref("selectedFrame", selected.gameObject);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
+
+        #region Строка лобби
+
+        public static GameObject LobbySlot()
+        {
+            RectTransform root = Ui.Node("UI_LobbySlot", null);
+            root.sizeDelta = new Vector2(600f, 78f);
+            Image background = root.Sprite(Kit.ListRow, Color.white);
+
+            RectTransform indexPill = Ui.Node("IndexPill", root).At(Ui.Left, new Vector2(18f, 0f), new Vector2(44f, 44f));
+            indexPill.Sprite(Kit.CircleSmall, Color.white);
+
+            TextMeshProUGUI index = Ui.Label("Text", indexPill, "1", 22f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            index.rectTransform.Stretch();
+
+            TextMeshProUGUI name = Ui.Label("Name", root, "Свободно", 24f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.Left, new Vector2(76f, 0f), new Vector2(240f, 30f));
+
+            Image swatch = Ui.Icon("Swatch", root, Kit.CircleSmall, new Vector2(32f, 32f));
+            swatch.rectTransform.At(Ui.Left, new Vector2(330f, 0f), new Vector2(32f, 32f));
+
+            RectTransform readyTag = Ui.Node("ReadyBadge", root).At(Ui.Right, new Vector2(-20f, 0f), new Vector2(126f, 44f));
+            readyTag.Sprite(Kit.TagGreen, Color.white);
+            Ui.Label("Text", readyTag, "ГОТОВ", 20f, Color.white, TextAlignmentOptions.Center, Kit.FontTitle)
+                .rectTransform.Stretch();
+            readyTag.gameObject.SetActive(false);
+
+            Image hostBadge = Ui.Icon("HostBadge", root, Kit.IconCrown, new Vector2(28f, 28f), Ui.Gold);
+            hostBadge.rectTransform.At(Ui.Right, new Vector2(-160f, 0f), new Vector2(28f, 28f));
+            hostBadge.gameObject.SetActive(false);
+
+            TextMeshProUGUI emptyHint = Ui.Label("EmptyHint", root, "ожидание игрока", 18f, Ui.InkMuted, TextAlignmentOptions.Right);
+            emptyHint.rectTransform.At(Ui.Right, new Vector2(-24f, 0f), new Vector2(220f, 24f));
+
+            LobbySlotView view = root.gameObject.AddComponent<LobbySlotView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("indexLabel", index)
+                    .Ref("nameLabel", name)
+                    .Ref("colorSwatch", swatch)
+                    .Ref("background", background)
+                    .Ref("readyBadge", readyTag.gameObject)
+                    .Ref("hostBadge", hostBadge.gameObject)
+                    .Ref("emptyHint", emptyHint.gameObject);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
+
+        #region Строка итогов
+
+        public static GameObject MatchResultRow()
+        {
+            RectTransform root = Ui.Node("UI_MatchResultRow", null);
+            root.sizeDelta = new Vector2(880f, 72f);
+            Image background = root.Sprite(Kit.TableRow, new Color(1f, 1f, 1f, 0.9f));
+
+            TextMeshProUGUI rank = Ui.Label("Rank", root, "1", 26f, Ui.Gold, TextAlignmentOptions.Center, Kit.FontNumbers);
+            rank.rectTransform.At(Ui.Left, new Vector2(30f, 0f), new Vector2(40f, 34f));
+
+            RectTransform tab = Ui.Node("ColorTab", root).At(Ui.Left, new Vector2(78f, 0f), new Vector2(8f, 40f));
+            Image colorTab = tab.Sprite(Kit.PillSmall, Color.white);
+
+            TextMeshProUGUI name = Ui.Label("Name", root, "Игрок 1", 24f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.Left, new Vector2(102f, 0f), new Vector2(240f, 30f));
+
+            TextMeshProUGUI flagTime = Ui.Label("FlagTime", root, "00:00", 24f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            flagTime.rectTransform.At(Ui.Center, new Vector2(90f, 0f), new Vector2(140f, 30f));
+
+            TextMeshProUGUI bases = Ui.Label("Bases", root, "0", 24f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            bases.rectTransform.At(Ui.Right, new Vector2(-190f, 0f), new Vector2(90f, 30f));
+
+            TextMeshProUGUI army = Ui.Label("Army", root, "0", 24f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            army.rectTransform.At(Ui.Right, new Vector2(-90f, 0f), new Vector2(90f, 30f));
+
+            Image winner = Ui.Icon("WinnerBadge", root, Kit.ItemTrophy, new Vector2(34f, 34f));
+            winner.rectTransform.At(Ui.Right, new Vector2(-24f, 0f), new Vector2(34f, 34f));
+            winner.gameObject.SetActive(false);
+
+            ResultRowView view = root.gameObject.AddComponent<ResultRowView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("rankLabel", rank)
+                    .Ref("nameLabel", name)
+                    .Ref("flagTimeLabel", flagTime)
+                    .Ref("basesLabel", bases)
+                    .Ref("armyLabel", army)
+                    .Ref("colorTab", colorTab)
+                    .Ref("background", background)
+                    .Ref("winnerBadge", winner.gameObject);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
+
+        #region Метка миникарты
+
+        public static GameObject MinimapMarker()
+        {
+            RectTransform root = Ui.Node("UI_MinimapMarker", null);
+            root.sizeDelta = new Vector2(20f, 20f);
+
+            RectTransform ringRect = Ui.Node("Ring", root).Stretch(-6f, -6f, -6f, -6f);
+            Image ring = ringRect.Sprite(Kit.CircleSmall, new Color(1f, 1f, 1f, 0.85f));
+            ring.enabled = false;
+
+            Image dot = root.Sprite(Kit.CircleSmall, Color.white);
+
+            Image icon = Ui.Icon("Icon", root, null, new Vector2(14f, 14f));
+            icon.enabled = false;
+
+            MinimapMarkerView view = root.gameObject.AddComponent<MinimapMarkerView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("rect", root)
+                    .Ref("dot", dot)
+                    .Ref("icon", icon)
+                    .Ref("ring", ring);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
+    }
+}

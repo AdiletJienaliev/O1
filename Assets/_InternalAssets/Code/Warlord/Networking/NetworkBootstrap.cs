@@ -20,7 +20,7 @@ namespace Warlord.Networking
         [SerializeField] private ushort defaultPort = 7770;
 
         [Header("Автозапуск")]
-        [Tooltip("Поднять хост сразу при старте сцены. Удобно для отладки в редакторе.")]
+        [Tooltip("Поднять хост сразу при старте сцены независимо от GameFlowConfig.")]
         [SerializeField] private bool autoStartHost;
 
         private NetworkManager _networkManager;
@@ -46,7 +46,20 @@ namespace Warlord.Networking
 
         private void Start()
         {
-            if (autoStartHost)
+            GameFlowConfig flow = config != null ? config.Flow : null;
+
+            if (flow != null)
+            {
+                // Адрес и порт из потока игры — чтобы отладочный запуск и ручное
+                // подключение не расходились в двух разных местах.
+                if (!string.IsNullOrWhiteSpace(flow.address))
+                    defaultAddress = flow.address;
+
+                if (flow.port != 0)
+                    defaultPort = flow.port;
+            }
+
+            if (autoStartHost || (flow != null && flow.WantsAutoHost))
                 StartHost();
         }
 

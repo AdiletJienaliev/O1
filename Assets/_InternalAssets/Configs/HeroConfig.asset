@@ -21,6 +21,8 @@ MonoBehaviour:
   jumpHeight: 1.6
   gravityScale: 3
   terminalVelocity: 40
+  rotationMode: 1
+  turnSpeed: 900
   attackDamage: 35
   attackCooldown: 0.8
   attackRange: 2.5

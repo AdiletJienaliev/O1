@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Unit_Spearman
   m_EditorClassIdentifier: 
   unitId: spearman
-  displayName: Копейщик
+  displayName: "\u041A\u043E\u043F\u0435\u0439\u0449\u0438\u043A"
   icon: {fileID: 0}
-  prefab: {fileID: 0}
+  prefab: {fileID: 2420842358163579246, guid: 364598c1cc87f8f43808ce98ee20208a, type: 3}
   cost: 75
   spawnTime: 2.5
   maxHealth: 85

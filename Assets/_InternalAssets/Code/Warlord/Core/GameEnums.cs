@@ -21,6 +21,22 @@ namespace Warlord.Core
         AttackMove = 2
     }
 
+    /// <summary>Как полководец разворачивается при движении (ГДД §8).</summary>
+    public enum HeroRotationMode : byte
+    {
+        /// <summary>
+        /// Разворачивается в сторону движения. Обычная схема от третьего лица:
+        /// A и D — шаг влево и вправо, тело доворачивается следом.
+        /// </summary>
+        FaceMovement = 0,
+
+        /// <summary>
+        /// Всегда смотрит туда же, куда камера, A и D дают стрейф.
+        /// Схема с постоянным прицеливанием.
+        /// </summary>
+        FaceCamera = 1
+    }
+
     /// <summary>Ветки древа прокачки (ГДД §11). Hero зарезервирована на будущее.</summary>
     public enum UpgradeBranch : byte
     {

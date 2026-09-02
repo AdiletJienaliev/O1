@@ -23,7 +23,8 @@ namespace Warlord.Gameplay.Players
         [SerializeField] private NetworkObject heroPrefab;
 
         [Header("Отладка")]
-        [Tooltip("Запускать матч сразу при первом подключении, минуя лобби. Только для тестов.")]
+        [Tooltip("Запускать матч сразу при первом подключении, минуя лобби. " +
+                 "То же делает галочка skipLobby в GameFlowConfig — здесь ручной вариант.")]
         [SerializeField] private bool autoStartMatch;
 
         private readonly Dictionary<NetworkConnection, PlayerState> _spawned = new();
@@ -73,11 +74,22 @@ namespace Warlord.Gameplay.Players
 
             _matchManager ??= MatchManager.Instance;
 
-            if (autoStartMatch && _matchManager != null && _matchManager.Phase == MatchPhase.Lobby)
+            if (ShouldSkipLobby() && _matchManager.Phase == MatchPhase.Lobby)
                 _matchManager.ServerStartMatch(_matchManager.Settings);
 
             if (!TrySpawnFor(connection))
                 _pending.Add(connection);
+        }
+
+        /// <summary>
+        /// Идём ли в матч мимо лобби: либо галочка в GameFlowConfig, либо ручной флаг на спавнере.
+        /// </summary>
+        private bool ShouldSkipLobby()
+        {
+            if (_matchManager == null)
+                return false;
+
+            return autoStartMatch || (_matchManager.Config != null && _matchManager.Config.SkipLobby);
         }
 
         private void OnPhaseChanged(MatchPhase phase)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Warlord.Core;
 
 namespace Warlord.Gameplay.Heroes.Input
 {
@@ -22,6 +23,13 @@ namespace Warlord.Gameplay.Heroes.Input
         [Tooltip("Слои, по которым ищется точка приказа под курсором.")]
         [SerializeField] private LayerMask groundMask = ~0;
 
+        [Header("Сглаживание")]
+        [Tooltip("За сколько секунд ввод набирает полную величину. 0 — мгновенно, как раньше.")]
+        [SerializeField] private float moveSmoothTime = 0.09f;
+
+        private Warlord.Presentation.HeroOrbitCamera _orbit;
+        private Vector2 _smoothedMove;
+        private Vector2 _moveVelocity;
         private bool _jumpBuffered;
         private bool _attackBuffered;
         private int _orderRequest = -1;
@@ -35,36 +43,47 @@ namespace Warlord.Gameplay.Heroes.Input
         public bool Sprint { get; private set; }
         public float AimYaw { get; private set; }
 
-        private void Awake() => aimCamera ??= Camera.main;
+        private void Awake() => ResolveCamera();
 
         private void Update()
         {
-            if (!Enabled)
+            ResolveCamera();
+
+            // Открытый экран интерфейса забирает и мышь, и клавиатуру: иначе ввод адреса
+            // в поле подключения заодно двигал бы полководца и раздавал приказы.
+            if (!Enabled || InputFocus.UiCapturesCursor)
             {
+                _smoothedMove = Vector2.zero;
+                _moveVelocity = Vector2.zero;
                 Move = Vector2.zero;
                 Sprint = false;
                 return;
             }
 
-            Move = new Vector2(
+            Vector2 raw = new Vector2(
                 UnityEngine.Input.GetAxisRaw("Horizontal"),
                 UnityEngine.Input.GetAxisRaw("Vertical"));
 
+            // Разгон и торможение по времени: сырой 0/1 с клавиатуры давал рывок на каждом
+            // нажатии, а сглаживание ввода безопасно для предсказания — оно едет по сети.
+            _smoothedMove = moveSmoothTime > 0f
+                ? Vector2.SmoothDamp(_smoothedMove, raw, ref _moveVelocity, moveSmoothTime)
+                : raw;
+
+            Move = _smoothedMove;
+
             Sprint = UnityEngine.Input.GetKey(sprintKey);
-            AimYaw = aimCamera != null ? aimCamera.transform.eulerAngles.y : transform.eulerAngles.y;
+
+            // Направление движения задаёт камера: WASD всегда относительно взгляда.
+            // Азимут берём у орбитальной камеры напрямую — её eulerAngles искажены наклоном.
+            AimYaw = _orbit != null
+                ? _orbit.Yaw
+                : (aimCamera != null ? aimCamera.transform.eulerAngles.y : transform.eulerAngles.y);
 
             if (UnityEngine.Input.GetKeyDown(jumpKey))
                 _jumpBuffered = true;
 
-            // ПКМ — удар мечом, ЛКМ — точка приказа (ГДД §8).
-            if (UnityEngine.Input.GetMouseButtonDown(1))
-                _attackBuffered = true;
-
-            if (UnityEngine.Input.GetMouseButtonDown(0) && TryPickGround(out Vector3 point))
-            {
-                _orderPoint = point;
-                _orderPointBuffered = true;
-            }
+            ReadMouse();
 
             for (int i = 0; i < orderKeys.Length; i++)
             {
@@ -77,6 +96,33 @@ namespace Warlord.Gameplay.Heroes.Input
                 if (UnityEngine.Input.GetKeyDown(formationKeys[i]))
                     _formationRequest = i;
             }
+        }
+
+        private void ReadMouse()
+        {
+            // Клик по кнопке HUD не должен заодно уходить в мир приказом или ударом.
+            if (InputFocus.BlocksWorldInput)
+                return;
+
+            // ПКМ — удар мечом, ЛКМ — точка приказа (ГДД §8).
+            if (UnityEngine.Input.GetMouseButtonDown(1))
+                _attackBuffered = true;
+
+            if (UnityEngine.Input.GetMouseButtonDown(0) && TryPickGround(out Vector3 point))
+            {
+                _orderPoint = point;
+                _orderPointBuffered = true;
+            }
+        }
+
+        /// <summary>Камера появляется в сцене независимо от полководца, поэтому ищем её, пока не найдём.</summary>
+        private void ResolveCamera()
+        {
+            if (aimCamera == null)
+                aimCamera = Camera.main;
+
+            if (_orbit == null && aimCamera != null)
+                _orbit = aimCamera.GetComponent<Warlord.Presentation.HeroOrbitCamera>();
         }
 
         public bool ConsumeJump() => Consume(ref _jumpBuffered);
@@ -109,7 +155,13 @@ namespace Warlord.Gameplay.Heroes.Input
             if (aimCamera == null)
                 return false;
 
-            Ray ray = aimCamera.ScreenPointToRay(UnityEngine.Input.mousePosition);
+            // При захваченном курсоре Input.mousePosition замирает и врать будет всегда одинаково,
+            // поэтому целимся из центра экрана — туда же смотрит прицел.
+            Vector3 screenPoint = Cursor.lockState == CursorLockMode.Locked
+                ? new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f)
+                : UnityEngine.Input.mousePosition;
+
+            Ray ray = aimCamera.ScreenPointToRay(screenPoint);
             if (!Physics.Raycast(ray, out RaycastHit hit, 500f, groundMask, QueryTriggerInteraction.Ignore))
                 return false;
 

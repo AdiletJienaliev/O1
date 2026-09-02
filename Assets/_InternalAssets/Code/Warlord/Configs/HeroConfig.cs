@@ -1,4 +1,5 @@
 using UnityEngine;
+using Warlord.Core;
 
 namespace Warlord.Configs
 {
@@ -22,6 +23,13 @@ namespace Warlord.Configs
 
         [Tooltip("Ограничение скорости падения, м/с.")]
         [Min(1f)] public float terminalVelocity = 40f;
+
+        [Header("Поворот")]
+        [Tooltip("FaceMovement — тело доворачивается в сторону шага. FaceCamera — всегда лицом по камере, A и D дают стрейф.")]
+        public HeroRotationMode rotationMode = HeroRotationMode.FaceMovement;
+
+        [Tooltip("Скорость доворота, град/с. 0 — мгновенно, тогда смена направления выглядит рывком.")]
+        [Min(0f)] public float turnSpeed = 900f;
 
         [Header("Атака")]
         [Min(0)] public int attackDamage = 35;

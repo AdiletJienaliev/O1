@@ -12,6 +12,10 @@ namespace Warlord.Configs
     [CreateAssetMenu(menuName = "Warlord/Game Config", fileName = "GameConfig")]
     public sealed class GameConfig : ScriptableObject
     {
+        [Header("Поток игры")]
+        [Tooltip("Запуск, лобби, курсор. Необязателен: без него игра идёт обычным путём через меню.")]
+        [SerializeField] private GameFlowConfig flow;
+
         [Header("Правила")]
         [SerializeField] private GameModeConfig gameMode;
         [SerializeField] private NetworkConfig network;
@@ -33,6 +37,14 @@ namespace Warlord.Configs
 
         [Header("Презентация")]
         [SerializeField] private TeamColorConfig teamColors;
+
+        public GameFlowConfig Flow => flow;
+
+        /// <summary>
+        /// Идти в матч мимо подключения и лобби. Вынесено отдельным свойством, потому что
+        /// проверять его приходится из мест, которым сам ассет потока больше ни за чем не нужен.
+        /// </summary>
+        public bool SkipLobby => flow != null && flow.skipLobby;
 
         public GameModeConfig GameMode => gameMode;
         public NetworkConfig Network => network;

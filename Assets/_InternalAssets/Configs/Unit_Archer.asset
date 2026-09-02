@@ -13,17 +13,17 @@ MonoBehaviour:
   m_Name: Unit_Archer
   m_EditorClassIdentifier: 
   unitId: archer
-  displayName: Лучник
+  displayName: "\u041B\u0443\u0447\u043D\u0438\u043A"
   icon: {fileID: 0}
-  prefab: {fileID: 0}
+  prefab: {fileID: 2420842358163579246, guid: 05735d14fa032aa42bed6e75cd9d0520, type: 3}
   cost: 90
-  spawnTime: 3.0
+  spawnTime: 3
   maxHealth: 60
   damagePerHit: 12
-  attackInterval: 1.0
-  attackRange: 14.0
+  attackInterval: 1
+  attackRange: 14
   armor: 0
-  moveSpeed: 4.0
+  moveSpeed: 4
   turnSpeed: 360
   aggroRadiusOverride: 0
   formationSlotPriority: 3

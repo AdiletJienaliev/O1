@@ -121,8 +121,11 @@ namespace Warlord.Gameplay.Match
             _clock.Reset();
 
             // Обратный отсчёт нужен, чтобы игроки успели загрузиться и увидеть карту
-            // до того, как начнут капать доход и время удержания.
-            _countdownRemaining = config.GameMode.countdownDuration;
+            // до того, как начнут капать доход и время удержания. При отладке его
+            // укорачивает или снимает GameFlowConfig.
+            _countdownRemaining = config.Flow != null
+                ? config.Flow.ResolveCountdown(config.GameMode.countdownDuration)
+                : config.GameMode.countdownDuration;
 
             if (_countdownRemaining > 0f)
                 SetPhase(MatchPhase.Countdown);

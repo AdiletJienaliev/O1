@@ -35,14 +35,22 @@ namespace Warlord.Gameplay.Heroes
     public struct HeroReconcileData : IReconcileData
     {
         public Vector3 Position;
+
+        /// <summary>
+        /// Поворот вокруг вертикали, град. Нужен именно в реконсиляции: доворот тела
+        /// считается от текущего угла, и без выправления повтор тактов уводил бы направление.
+        /// </summary>
+        public float Yaw;
+
         public float VerticalVelocity;
         public bool Alive;
 
         private uint _tick;
 
-        public HeroReconcileData(Vector3 position, float verticalVelocity, bool alive)
+        public HeroReconcileData(Vector3 position, float yaw, float verticalVelocity, bool alive)
         {
             Position = position;
+            Yaw = yaw;
             VerticalVelocity = verticalVelocity;
             Alive = alive;
             _tick = 0u;

@@ -2,7 +2,9 @@
     "name": "Warlord.Runtime",
     "rootNamespace": "Warlord",
     "references": [
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

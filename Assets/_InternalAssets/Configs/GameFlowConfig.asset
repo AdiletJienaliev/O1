@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ba03061877dcb14ab117c018d3f0752, type: 3}
+  m_Name: GameFlowConfig
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Configs.GameFlowConfig
+  skipLobby: 1
+  autoStartHost: 1
+  address: 127.0.0.1
+  port: 7770
+  overrideCountdown: 1
+  countdownDuration: 0
+  lockCursorInMatch: 0
