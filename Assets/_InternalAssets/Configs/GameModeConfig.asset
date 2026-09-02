@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f8e010aa703a06478185840ca25edd9, type: 3}
+  m_Name: GameModeConfig
+  m_EditorClassIdentifier: 
+  matchDuration: 900
+  maxPlayers: 4
+  countdownDuration: 3
+  startingGold: 300
+  goldPerSecond: 8
+  goldPerSecondPerFlag: 6
+  goldPerSecondPerCapturedBase: 4
+  xpPerSecondHoldingFlag: 3
+  goldPerUnitKill: 0
+  baseCaptureGoldSteal: 1
+  maxUnits: 20
+  parallelSpawnSlots: 1
+  unitSpawnGlobalMultiplier: 1
+  unitCostGlobalMultiplier: 1
+  baseHealRadius: 10
+  baseHealPerSecond: 5
+  heroRespawnTime: 8
+  spawnProtectionDuration: 0
+  winTiebreakOrder:
+  - 0
+  - 1
+  - 2
+  - 3

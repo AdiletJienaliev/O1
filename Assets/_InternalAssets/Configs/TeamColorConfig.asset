@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c27b67893d0ce443827b7c91b0a0ce1, type: 3}
+  m_Name: TeamColorConfig
+  m_EditorClassIdentifier: 
+  entries:
+  - colorId: blue
+    displayName: Синий
+    primaryColor: {r: 0.16, g: 0.45, b: 0.95, a: 1.0}
+    outlineColor: {r: 0.08, g: 0.22, b: 0.55, a: 1.0}
+    sigilIcon: {fileID: 0}
+    minimapIcon: {fileID: 0}
+  - colorId: red
+    displayName: Красный
+    primaryColor: {r: 0.9, g: 0.22, b: 0.2, a: 1.0}
+    outlineColor: {r: 0.5, g: 0.1, b: 0.09, a: 1.0}
+    sigilIcon: {fileID: 0}
+    minimapIcon: {fileID: 0}
+  - colorId: green
+    displayName: Зелёный
+    primaryColor: {r: 0.25, g: 0.78, b: 0.35, a: 1.0}
+    outlineColor: {r: 0.11, g: 0.4, b: 0.17, a: 1.0}
+    sigilIcon: {fileID: 0}
+    minimapIcon: {fileID: 0}
+  - colorId: yellow
+    displayName: Жёлтый
+    primaryColor: {r: 0.95, g: 0.82, b: 0.2, a: 1.0}
+    outlineColor: {r: 0.55, g: 0.46, b: 0.08, a: 1.0}
+    sigilIcon: {fileID: 0}
+    minimapIcon: {fileID: 0}
+  shaderColorProperty: _TeamColor

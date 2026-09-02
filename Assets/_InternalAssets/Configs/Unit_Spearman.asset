@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 122360b80616ddc44af2e8008e9fce20, type: 3}
+  m_Name: Unit_Spearman
+  m_EditorClassIdentifier: 
+  unitId: spearman
+  displayName: Копейщик
+  icon: {fileID: 0}
+  prefab: {fileID: 0}
+  cost: 75
+  spawnTime: 2.5
+  maxHealth: 85
+  damagePerHit: 12
+  attackInterval: 0.75
+  attackRange: 3.2
+  armor: 0
+  moveSpeed: 4.2
+  turnSpeed: 360
+  aggroRadiusOverride: 0
+  formationSlotPriority: 2
+  isRanged: 0
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 25

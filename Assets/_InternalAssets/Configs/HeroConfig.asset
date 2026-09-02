@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 092672017e904f74395ea9c4f6005af3, type: 3}
+  m_Name: HeroConfig
+  m_EditorClassIdentifier: 
+  maxHealth: 250
+  outOfCombatRegen: 8
+  outOfCombatDelay: 6
+  respawnTime: 8
+  moveSpeed: 6
+  sprintSpeed: 8.5
+  jumpHeight: 1.6
+  gravityScale: 3
+  terminalVelocity: 40
+  attackDamage: 35
+  attackCooldown: 0.8
+  attackRange: 2.5
+  attackHalfAngle: 60
+  maxTargetsPerHit: 1
+  attackRangeTolerance: 0.5
+  buyZoneRadius: 12

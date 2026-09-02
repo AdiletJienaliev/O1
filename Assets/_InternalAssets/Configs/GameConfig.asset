@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0b3baf2bac7a0c4e92a2df7d6cc67bb, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  gameMode: {fileID: 11400000, guid: 43f4041ff1264df78078118b539ab9b2, type: 2}
+  network: {fileID: 11400000, guid: d88984ce92e541dcbcd1be31aa98d89a, type: 2}
+  maps: {fileID: 11400000, guid: 61e1dce06d7a4ad4945844913f2a6ed4, type: 2}
+  hero: {fileID: 11400000, guid: 077169948ceb469c9ec19fcdd796e51b, type: 2}
+  roster: {fileID: 11400000, guid: 65285a5ab5fe4cf7b7ee50495700ea85, type: 2}
+  damageMatrix: {fileID: 11400000, guid: 427589ba0e8e47ad8365e962e1f19877, type: 2}
+  command: {fileID: 11400000, guid: 90052c20d9f54ec293465fadf51fb940, type: 2}
+  formations: {fileID: 11400000, guid: 3b39a42b2f024315955650f4747e3a3a, type: 2}
+  upgradeTree: {fileID: 11400000, guid: d4b3fda1c041409c8ba0fe1c7393d2b6, type: 2}
+  centralFlag: {fileID: 11400000, guid: b7566d0d602b4c2c8886f14f8624095e, type: 2}
+  baseFlag: {fileID: 11400000, guid: 6e289cd5b18c4d55875cc858fd858436, type: 2}
+  teamColors: {fileID: 11400000, guid: e605b9d1ec904f6c9b53888d555c206d, type: 2}
