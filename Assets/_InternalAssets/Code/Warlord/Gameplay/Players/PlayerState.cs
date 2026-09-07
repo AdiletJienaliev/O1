@@ -3,11 +3,13 @@ using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
 using Warlord.Configs;
+using Warlord.Configs.Upgrades;
 using Warlord.Core;
 using Warlord.Domain.Economy;
 using Warlord.Domain.Stats;
 using Warlord.Domain.Upgrades;
 using Warlord.Gameplay.Army;
+using Warlord.Gameplay.Capture;
 using Warlord.Gameplay.Heroes;
 using Warlord.Gameplay.Match;
 using Warlord.Gameplay.Units;
@@ -28,6 +30,10 @@ namespace Warlord.Gameplay.Players
         private readonly SyncVar<byte> _orderType = new();
         private readonly SyncVar<byte> _formationIndex = new();
         private readonly SyncVar<byte> _armyCount = new(new SyncTypeSettings(0.2f));
+
+        // Гарнизон считается отдельно от армии: в лимит он входит наравне с полевыми юнитами,
+        // но игроку в HUD нужны оба числа порознь — «Армия 8 / 20 · Гарнизон 7» (ГДД §1.9).
+        private readonly SyncVar<byte> _garrisonCount = new(new SyncTypeSettings(0.2f));
         private readonly SyncVar<byte> _unitCap = new();
         private readonly SyncVar<byte> _capturedBases = new();
         private readonly SyncVar<bool> _eliminated = new();
@@ -48,6 +54,10 @@ namespace Warlord.Gameplay.Players
         public ArmyOrderType OrderType => (ArmyOrderType)_orderType.Value;
         public int FormationIndex => _formationIndex.Value;
         public int ArmyCount => _armyCount.Value;
+
+        /// <summary>Живые охранники на всех точках. Занимают те же слоты лимита, что и армия (ГДД §1.1).</summary>
+        public int GarrisonCount => _garrisonCount.Value;
+
         public int UnitCap => _unitCap.Value;
         public int CapturedBases => _capturedBases.Value;
         public bool IsEliminated => _eliminated.Value;
@@ -64,6 +74,19 @@ namespace Warlord.Gameplay.Players
         public ArmyController Army { get; private set; }
         public ArmyStatsCache Stats { get; private set; }
         public UnitSpawnQueue BuildQueue { get; private set; }
+
+        /// <summary>Охранники игрока и их привязка к точкам (ГДД §1).</summary>
+        public GarrisonRoster Garrison { get; private set; }
+
+        /// <summary>Суммарный эффект улучшений с удерживаемых аванпостов (ГДД §2.5).</summary>
+        public OutpostUpgradeStack OutpostUpgrades { get; private set; }
+
+        /// <summary>
+        /// Куда идут новые полевые юниты (ГДД §2.6). Null — на базу. Точка сбора живёт только
+        /// на сервере: клиенту достаточно видеть её подсветку в панели покупки.
+        /// </summary>
+        public CapturePointBehaviour RallyPoint { get; private set; }
+
         public HeroController Hero { get; internal set; }
         public bool HoldsCentralFlag => _context != null && _context.CentralFlagOwner == Slot;
 
@@ -104,8 +127,11 @@ namespace Warlord.Gameplay.Players
             Wallet = new PlayerWallet(context.Settings.StartingGold);
             Army = new ArmyController(slot, Stats, config.Command, config.Formations);
             BuildQueue = new UnitSpawnQueue(mode, config.Roster, context.Settings);
+            Garrison = new GarrisonRoster();
+            OutpostUpgrades = new OutpostUpgradeStack();
 
             BuildQueue.BuildCompleted += OnBuildCompleted;
+            BuildQueue.BuildCancelled += OnBuildCancelled;
             BuildQueue.QueueChanged += PublishQueue;
 
             _formationIndex.Value = (byte)config.Formations.DefaultIndex;
@@ -127,6 +153,7 @@ namespace Warlord.Gameplay.Players
             if (BuildQueue != null)
             {
                 BuildQueue.BuildCompleted -= OnBuildCompleted;
+                BuildQueue.BuildCancelled -= OnBuildCancelled;
                 BuildQueue.QueueChanged -= PublishQueue;
             }
         }
@@ -149,22 +176,72 @@ namespace Warlord.Gameplay.Players
             if (!IsServerInitialized || IsEliminated)
                 return;
 
+            // Точку могли отбить, пока охранник строился: покупка отменяется, золото
+            // возвращается (ГДД §1.6). Проверяем до тика, чтобы отменённый не успел родиться.
+            BuildQueue.CancelInvalidGuards(IsOwnedByMe);
             BuildQueue.Tick(deltaTime);
 
             int before = Army.AliveCount;
             Army.PurgeDead();
             if (Army.AliveCount != before)
                 _armyCount.Value = (byte)Mathf.Min(byte.MaxValue, Army.AliveCount);
+
+            if (Garrison.PurgeDead())
+                _garrisonCount.Value = (byte)Mathf.Min(byte.MaxValue, Garrison.Count);
         }
+
+        /// <summary>Точка всё ещё моя. Единственное условие, при котором охранник на неё поедет.</summary>
+        private bool IsOwnedByMe(CapturePointBehaviour point) => point != null && point.OwnerSlot == Slot;
+
+        /// <summary>
+        /// Сколько слотов лимита занято прямо сейчас: армия, гарнизон и всё, что в очереди.
+        /// Считать очередь обязательно — иначе за один клик заказывается втрое больше лимита.
+        /// </summary>
+        public int OccupiedUnitSlots => Army.AliveCount + Garrison.Count + BuildQueue.PendingCount;
 
         /// <summary>Пересчёт статов после покупки перка — мгновенно для всех живых юнитов (ГДД §11).</summary>
         public void ServerApplyUpgrades(in UpgradeLevels levels)
         {
             _upgrades.Value = levels;
             Stats.ApplyLevels(in levels);
+            RefreshUnitCap();
+        }
 
+        /// <summary>
+        /// Пересобрать эффекты аванпостов (ГДД §2.5). Лимит армии и скорость постройки
+        /// применяются здесь же: это единственные эффекты улучшений, живущие на игроке,
+        /// а не на самой точке.
+        /// </summary>
+        public void ServerApplyOutpostUpgrades(IReadOnlyList<OutpostUpgradeConfig> upgrades)
+        {
+            if (!IsServerInitialized)
+                return;
+
+            OutpostUpgrades.Rebuild(upgrades);
+            BuildQueue.SpawnTimeMultiplier = OutpostUpgrades.SpawnTimeMultiplier;
+            RefreshUnitCap();
+        }
+
+        /// <summary>Назначить точку сбора. Null — новые юниты снова идут на базу (ГДД §2.6).</summary>
+        public void ServerSetRallyPoint(CapturePointBehaviour point) => RallyPoint = point;
+
+        /// <summary>Точка потеряна: если сбор стоял на ней, он возвращается на базу.</summary>
+        public void ServerClearRallyPointIfAt(CapturePointBehaviour point)
+        {
+            if (RallyPoint == point)
+                RallyPoint = null;
+        }
+
+        /// <summary>Лимит армии: база режима, плоский бонус древа и прибавка от «Снабжения».</summary>
+        private void RefreshUnitCap()
+        {
             UnitStatsResolver resolver = new(_context.Config.UpgradeTree, _context.Config.Command);
-            _unitCap.Value = (byte)Mathf.Clamp(resolver.ResolveUnitCap(_context.Config.GameMode.maxUnits, levels), 0, byte.MaxValue);
+            UpgradeLevels levels = _upgrades.Value;
+
+            int cap = resolver.ResolveUnitCap(_context.Config.GameMode.maxUnits, levels)
+                + (OutpostUpgrades != null ? OutpostUpgrades.UnitCapBonus : 0);
+
+            _unitCap.Value = (byte)Mathf.Clamp(cap, 0, byte.MaxValue);
         }
 
         public void ServerSetOrder(in ArmyOrder order)
@@ -197,13 +274,19 @@ namespace Warlord.Gameplay.Players
             _eliminated.Value = true;
 
             BuildQueue.Clear();
+            RallyPoint = null;
+
+            // Гарнизон уничтожается вместе с остальной армией (ГДД §1.4): точки выбывшего
+            // всё равно уходят в нейтраль, и оставленные охранники били бы уже ни за кого.
             Army.CollectAndClear(_despawnBuffer);
+            Garrison.CollectAndClear(_despawnBuffer);
 
             for (int i = 0; i < _despawnBuffer.Count; i++)
                 _context.Units.Despawn(_despawnBuffer[i]);
 
             _despawnBuffer.Clear();
             _armyCount.Value = 0;
+            _garrisonCount.Value = 0;
 
             if (Hero != null)
                 Hero.ServerSetSpectator();
@@ -211,16 +294,40 @@ namespace Warlord.Gameplay.Players
             _context.Events.RaisePlayerEliminated(Slot, reason);
         }
 
-        private void OnBuildCompleted(int rosterIndex)
+        private void OnBuildCompleted(int rosterIndex, CapturePointBehaviour point, int paidGold)
+        {
+            if (point != null)
+            {
+                SpawnGuard(rosterIndex, point, paidGold);
+                return;
+            }
+
+            SpawnFieldUnit(rosterIndex);
+        }
+
+        /// <summary>
+        /// Полевой юнит. Появляется на базе или на точке сбора (ГДД §2.6): от базы до центра
+        /// около сотни метров, и без точки сбора каждая потеря армии стоила бы минуты бега.
+        /// </summary>
+        private void SpawnFieldUnit(int rosterIndex)
         {
             PlayerBaseAnchor anchor = _context.Players.GetBaseAnchor(Slot);
+
+            Vector3 position = anchor.UnitSpawnPoint;
+            float yaw = anchor.YawDegrees;
+
+            if (RallyPoint != null && RallyPoint.OwnerSlot == Slot)
+            {
+                position = RallyPoint.transform.position;
+                yaw = RallyPoint.transform.eulerAngles.y;
+            }
 
             UnitEntity unit = _context.Units.Spawn(
                 Slot,
                 rosterIndex,
                 Stats,
-                anchor.UnitSpawnPoint,
-                Quaternion.Euler(0f, anchor.YawDegrees, 0f),
+                position,
+                Quaternion.Euler(0f, yaw, 0f),
                 Owner);
 
             if (unit == null)
@@ -230,10 +337,76 @@ namespace Warlord.Gameplay.Players
             _armyCount.Value = (byte)Mathf.Min(byte.MaxValue, Army.AliveCount);
         }
 
+        /// <summary>
+        /// Охранник. Появляется прямо в своём слоте на точке, а не идёт от базы (ГДД §1.6):
+        /// одинокий медленный юнит, ковыляющий через полкарты, был бы перехвачен всегда,
+        /// и покупка ощущалась бы как обман, а не как подкрепление гарнизона.
+        /// </summary>
+        private void SpawnGuard(int rosterIndex, CapturePointBehaviour point, int paidGold)
+        {
+            int slotCount = ResolveGuardSlots(rosterIndex, point);
+
+            if (!Garrison.TryTakeSlot(point, slotCount, out int slotIndex))
+            {
+                // Слот заняли, пока охранник строился. Деньги возвращаем — покупка не состоялась.
+                Refund(paidGold);
+                return;
+            }
+
+            Vector3 center = point.transform.position;
+            Vector3 home = Domain.Capture.GarrisonLayout.SlotPosition(center, point.GarrisonRingRadius, slotIndex, slotCount);
+            float yaw = Domain.Capture.GarrisonLayout.SlotYaw(center, home);
+
+            UnitEntity unit = _context.Units.Spawn(
+                Slot,
+                rosterIndex,
+                Stats,
+                home,
+                Quaternion.Euler(0f, yaw, 0f),
+                Owner);
+
+            if (unit == null)
+                return;
+
+            // «Наёмники» дают охранникам этой точки прибавку к здоровью (ГДД §2.5).
+            OutpostUpgradeConfig upgrade = point.Upgrade;
+            if (upgrade != null && upgrade.guardHealthBonus > 0f)
+                unit.ServerSetHealthMultiplier(1f + upgrade.guardHealthBonus);
+
+            unit.AssignFormationSlot(slotIndex, home);
+
+            Garrison.Add(unit, point, slotIndex);
+            _garrisonCount.Value = (byte)Mathf.Min(byte.MaxValue, Garrison.Count);
+        }
+
+        /// <summary>Сколько слотов на кольце: меньшее из лимита точки и лимита самого типа охранника.</summary>
+        private int ResolveGuardSlots(int rosterIndex, CapturePointBehaviour point)
+        {
+            UnitConfig config = _context.Config.Roster.Get(rosterIndex);
+            int byType = config != null ? Mathf.Max(1, config.maxPerPoint) : 1;
+
+            return Mathf.Max(1, Mathf.Min(point.MaxGuards, byType));
+        }
+
+        /// <summary>Возврат денег за несостоявшуюся покупку охранника (ГДД §1.6).</summary>
+        private void OnBuildCancelled(int gold) => Refund(gold);
+
+        private void Refund(int gold)
+        {
+            if (gold <= 0)
+                return;
+
+            Wallet.AddGold(gold);
+            PublishWallet();
+        }
+
         internal void ServerNotifyUnitLost(UnitEntity unit)
         {
             Army.Remove(unit);
             _armyCount.Value = (byte)Mathf.Min(byte.MaxValue, Army.AliveCount);
+
+            Garrison.Remove(unit);
+            _garrisonCount.Value = (byte)Mathf.Min(byte.MaxValue, Garrison.Count);
         }
 
         private void PublishWallet()

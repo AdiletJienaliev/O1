@@ -48,7 +48,9 @@ namespace Warlord.UI.Widgets
             HeroController hero = HeroController.Local;
             bool inZone = MatchQuery.IsHeroInsideBuyZone(config, hero, player.Slot);
             bool running = Match.Phase == MatchPhase.Running && !player.IsEliminated;
-            bool hasRoom = player.ArmyCount + player.SpawnQueue.Count < player.UnitCap;
+            // Гарнизон занимает те же слоты лимита, что и армия (ГДД §1.1), поэтому в проверку
+            // «есть ли место» он входит наравне с полевыми юнитами и очередью постройки.
+            bool hasRoom = player.ArmyCount + player.GarrisonCount + player.SpawnQueue.Count < player.UnitCap;
 
             if (buyZoneHint != null)
                 buyZoneHint.SetActive(running && !inZone);
@@ -81,6 +83,13 @@ namespace Warlord.UI.Widgets
 
             for (int i = 0; i < roster.Count; i++)
             {
+                // Охранник в эту панель не попадает: его покупают вместе с точкой,
+                // в панели гарнизона (ГДД §1.6). Карточка без выбора точки была бы кнопкой,
+                // которую сервер отклоняет всегда.
+                UnitConfig entry = roster.Get(i);
+                if (entry != null && entry.isGarrison)
+                    continue;
+
                 UnitCardView card = Instantiate(cardTemplate, container);
                 card.gameObject.SetActive(true);
                 card.name = "UnitCard_" + i;

@@ -50,6 +50,7 @@ namespace Warlord.Gameplay.Units
         private ArmyStatsCache _statsCache;
         private int _cachedStatsVersion = -1;
         private UnitStats _stats;
+        private float _healthMultiplier = 1f;
 
         // --- Серверное состояние. Никогда не реплицируется. ---
         private ICombatTarget _currentTarget;
@@ -58,6 +59,7 @@ namespace Warlord.Gameplay.Units
         private float _targetSwitchCooldown;
         private float _retaliationTimer;
         private float _repathTimer;
+        private float _timeSinceCombat;
         private Vector3 _formationSlot;
         private int _formationSlotIndex = -1;
 
@@ -72,6 +74,13 @@ namespace Warlord.Gameplay.Units
         public ICombatTarget LastAttacker => _retaliationTimer > 0f ? _lastAttacker.OrNull() : null;
         public float AttackCooldown => _attackCooldown;
         public float RepathTimer => _repathTimer;
+
+        /// <summary>
+        /// Сколько секунд юнит никого не бил и его никто не бил. Нужен регенерации гарнизона
+        /// (ГДД §1.2, regenCombatDelay): охранник лечится только вне боя, иначе он отхиливал бы
+        /// себя прямо под ударами и точку было бы не взять.
+        /// </summary>
+        public float TimeSinceCombat => _timeSinceCombat;
 
         /// <summary>Актуальные статы с учётом древа прокачки. Пересчитываются лениво при смене версии кэша.</summary>
         public UnitStats Stats
@@ -95,7 +104,7 @@ namespace Warlord.Gameplay.Units
         public float Radius => bodyRadius;
         public int Armor => Stats.Armor;
         public int Health => _health.Value;
-        public int MaxHealth => Stats.MaxHealth;
+        public int MaxHealth => ScaleHealth(Stats.MaxHealth);
 
         #endregion
 
@@ -126,6 +135,7 @@ namespace Warlord.Gameplay.Units
                 _retaliationTimer = _context != null ? _context.Config.Command.retaliationMemory : 3f;
             }
 
+            _timeSinceCombat = 0f;
             ObserversPlayBlock();
         }
 
@@ -289,7 +299,7 @@ namespace Warlord.Gameplay.Units
             _rosterIndex.Value = (byte)Mathf.Clamp(rosterIndex, 0, byte.MaxValue);
 
             RefreshStats();
-            _health.Value = _stats.MaxHealth;
+            _health.Value = MaxHealth;
 
             _formationSlot = transform.position;
             _shieldRaised.Value = false;
@@ -327,6 +337,7 @@ namespace Warlord.Gameplay.Units
                 return;
 
             _health.Value = Mathf.Max(0, _health.Value - amount);
+            _timeSinceCombat = 0f;
 
             if (source.Exists() && PlayerSlots.AreEnemies(source.OwnerSlot, OwnerSlot))
             {
@@ -341,7 +352,7 @@ namespace Warlord.Gameplay.Units
             if (!IsServerInitialized || !IsAlive || amount <= 0f)
                 return;
 
-            _health.Value = Mathf.Min(Stats.MaxHealth, _health.Value + Mathf.CeilToInt(amount));
+            _health.Value = Mathf.Min(MaxHealth, _health.Value + Mathf.CeilToInt(amount));
         }
 
         /// <summary>Серверный тик таймеров. Вызывается <see cref="UnitAiSystem"/> до принятия решений.</summary>
@@ -355,6 +366,8 @@ namespace Warlord.Gameplay.Units
                 _retaliationTimer -= deltaTime;
             if (_repathTimer > 0f)
                 _repathTimer -= deltaTime;
+
+            _timeSinceCombat += deltaTime;
         }
 
         public bool CanSwitchTarget => _targetSwitchCooldown <= 0f;
@@ -372,7 +385,11 @@ namespace Warlord.Gameplay.Units
                 _currentTarget = null;
         }
 
-        public void ConsumeAttackCooldown() => _attackCooldown = Stats.AttackInterval;
+        public void ConsumeAttackCooldown()
+        {
+            _attackCooldown = Stats.AttackInterval;
+            _timeSinceCombat = 0f;
+        }
 
         /// <summary>Возвращает true, если пора пересчитать путь. Дросселирует SetDestination (ГДД §15, repathInterval).</summary>
         public bool TryConsumeRepath(float interval)
@@ -384,6 +401,28 @@ namespace Warlord.Gameplay.Units
             return true;
         }
 
+        /// <summary>
+        /// Множитель максимального здоровья сверх статов ростера. Нужен улучшению «Наёмники»
+        /// (ГДД §2.5): +30 % HP получают охранники конкретной точки, а не весь тип в ростере,
+        /// поэтому прокачка тут ни при чём и <see cref="ArmyStatsCache"/> трогать нельзя —
+        /// он общий на игрока.
+        /// </summary>
+        public void ServerSetHealthMultiplier(float multiplier)
+        {
+            if (!IsServerInitialized)
+                return;
+
+            float clamped = Mathf.Clamp(multiplier, 1f, 4f);
+
+            if (Mathf.Approximately(_healthMultiplier, clamped))
+                return;
+
+            // Статы от множителя не зависят — пересчитывать кэш незачем, меняется только
+            // потолок здоровья, и охранник встаёт в слот с полным.
+            _healthMultiplier = clamped;
+            _health.Value = MaxHealth;
+        }
+
         private void RefreshStats()
         {
             if (_statsCache == null)
@@ -392,7 +431,12 @@ namespace Warlord.Gameplay.Units
                 return;
             }
 
-            int previousMax = _stats.MaxHealth;
+            // Считаем от уже загруженных статов напрямую, а не через MaxHealth: тот читает
+            // Stats, а Stats при устаревшей версии кэша зовёт RefreshStats обратно — версия
+            // обновляется только строкой ниже, и обращение сюда уходило бы в бесконечную
+            // рекурсию на первом же заспавненном юните.
+            int previousMax = ScaleHealth(_stats.MaxHealth);
+
             _stats = _statsCache.Get(_rosterIndex.Value);
             _cachedStatsVersion = _statsCache.Version;
 
@@ -403,8 +447,14 @@ namespace Warlord.Gameplay.Units
 
             // Прокачка здоровья применяется мгновенно ко всем живым (ГДД §11): добираем дельту,
             // а не масштабируем — иначе раненый юнит лечился бы покупкой перка.
-            if (IsServerInitialized && previousMax > 0 && _stats.MaxHealth > previousMax && IsAlive)
-                _health.Value += _stats.MaxHealth - previousMax;
+            int currentMax = ScaleHealth(_stats.MaxHealth);
+
+            if (IsServerInitialized && previousMax > 0 && currentMax > previousMax && IsAlive)
+                _health.Value += currentMax - previousMax;
         }
+
+        /// <summary>Здоровье с поправкой на бонус точки. Работает от базового числа, не от Stats.</summary>
+        private int ScaleHealth(int baseMaxHealth) =>
+            Mathf.Max(1, Mathf.RoundToInt(baseMaxHealth * _healthMultiplier));
     }
 }

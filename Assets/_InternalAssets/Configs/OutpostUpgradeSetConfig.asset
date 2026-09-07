@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90cc1fd03e9e20a4e88062f1c0369a5a, type: 3}
+  m_Name: OutpostUpgradeSetConfig
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Configs.Upgrades.OutpostUpgradeSetConfig
+  upgrades:
+  - {fileID: 11400000, guid: e3d2139a260570743863d768fa4490c4, type: 2}
+  - {fileID: 11400000, guid: 50c2545d399056f45b214570a9d58338, type: 2}
+  - {fileID: 11400000, guid: 4629b69a201400b40a30acdcf2797ac5, type: 2}
+  defaultIndex: 0

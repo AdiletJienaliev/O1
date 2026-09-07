@@ -41,7 +41,8 @@ namespace Warlord.Gameplay.Economy
                     mode,
                     _context.Settings,
                     holdsFlag,
-                    player.CapturedBases);
+                    player.CapturedBases,
+                    player.OutpostUpgrades != null ? player.OutpostUpgrades.GoldPerSecond : 0f);
 
                 player.ServerTickEconomy(deltaTime, in income);
 

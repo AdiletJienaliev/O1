@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using FishNet.Managing;
 using Warlord.Configs;
 using Warlord.Core;
@@ -65,7 +66,23 @@ namespace Warlord.Gameplay.Match
 
         public int CentralFlagOwner => Capture != null ? Capture.CentralFlagOwner : PlayerSlots.None;
 
-        public void BindCapture(CaptureSystem capture) => Capture = capture;
+        public IReadOnlyList<CapturePointBehaviour> CapturePoints => Capture != null
+            ? Capture.Points
+            : System.Array.Empty<CapturePointBehaviour>();
+
+        /// <summary>
+        /// Обработчик аванпостов. Ставится менеджером вместе с системой захвата: пересчёт
+        /// стакинга умеет только он, а звать его приходится и из команды выбора улучшения.
+        /// </summary>
+        public OutpostRewardHandler Outposts { get; private set; }
+
+        public void RebuildOutpostUpgrades(int slot) => Outposts?.RebuildStack(slot);
+
+        public void BindCapture(CaptureSystem capture, OutpostRewardHandler outposts)
+        {
+            Capture = capture;
+            Outposts = outposts;
+        }
 
         public void SetPhase(MatchPhase phase)
         {

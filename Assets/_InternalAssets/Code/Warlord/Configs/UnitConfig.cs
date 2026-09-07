@@ -68,6 +68,26 @@ namespace Warlord.Configs
         [Tooltip("Какая доля урона проходит сквозь поднятый щит спереди. 0 — не пробить вовсе.")]
         [Range(0f, 1f)] public float blockDamageFactor;
 
+        [Header("Гарнизон")]
+        [Tooltip("Охранник (ГДД §1). Такой юнит не входит в армию, не получает приказов " +
+                 "и живёт в слоте своей точки захвата — но слот в общем лимите занимает.")]
+        public bool isGarrison;
+
+        [Tooltip("Дальше этого расстояния от своего слота охранник за целью не идёт, м.")]
+        [Min(0f)] public float garrisonLeash = 8f;
+
+        [Tooltip("Множитель скорости на обратном пути в слот: возвращаться охранник должен быстрее, чем гнался.")]
+        [Min(1f)] public float garrisonReturnSpeed = 1.3f;
+
+        [Tooltip("Регенерация в своём слоте вне боя, HP/с.")]
+        [Min(0f)] public float garrisonRegenPerSecond = 3f;
+
+        [Tooltip("Сколько секунд после последнего удара регенерация не работает.")]
+        [Min(0f)] public float garrisonRegenCombatDelay = 5f;
+
+        [Tooltip("Сколько охранников этого типа один игрок может держать на одной точке.")]
+        [Min(1)] public int maxPerPoint = 6;
+
         [Header("Дальний бой")]
         public bool isRanged;
         public GameObject projectilePrefab;

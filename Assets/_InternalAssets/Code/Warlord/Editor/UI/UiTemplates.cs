@@ -17,7 +17,7 @@ namespace Warlord.EditorTools.UI
         public static GameObject UnitCard()
         {
             RectTransform root = Ui.Node("UI_UnitCard", null);
-            root.sizeDelta = new Vector2(184f, 226f);
+            root.sizeDelta = new Vector2(96f, 122f);
 
             Image frame = root.Sprite(Kit.ItemSlot, Color.white);
             frame.raycastTarget = true;
@@ -26,25 +26,25 @@ namespace Warlord.EditorTools.UI
             button.targetGraphic = frame;
             button.colors = CardColors();
 
-            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(92f, 92f));
-            icon.rectTransform.At(Ui.Top, new Vector2(0f, -26f), new Vector2(92f, 92f));
+            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(46f, 46f));
+            icon.rectTransform.At(Ui.Top, new Vector2(0f, -14f), new Vector2(46f, 46f));
 
-            TextMeshProUGUI name = Ui.Label("Name", root, "Мечник", 24f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontTitle);
-            name.rectTransform.At(Ui.Top, new Vector2(0f, -126f), new Vector2(170f, 30f));
+            TextMeshProUGUI name = Ui.Label("Name", root, "Мечник", 17f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontTitle);
+            name.rectTransform.At(Ui.Top, new Vector2(0f, -66f), new Vector2(92f, 21f));
 
-            TextMeshProUGUI stats = Ui.Label("Stats", root, "100 HP · 10 урон", 16f, Ui.InkMuted, TextAlignmentOptions.Center);
-            stats.rectTransform.At(Ui.Top, new Vector2(0f, -154f), new Vector2(170f, 22f));
+            TextMeshProUGUI stats = Ui.Label("Stats", root, "100 HP · 10 урон", 12f, Ui.InkMuted, TextAlignmentOptions.Center);
+            stats.rectTransform.At(Ui.Top, new Vector2(0f, -85f), new Vector2(92f, 16f));
 
-            RectTransform costPill = Ui.Node("CostPill", root).At(Ui.Bottom, new Vector2(0f, 14f), new Vector2(126f, 42f));
+            RectTransform costPill = Ui.Node("CostPill", root).At(Ui.Bottom, new Vector2(0f, 8f), new Vector2(76f, 24f));
             costPill.Sprite(Kit.PillSmall, Color.white);
 
-            Image coin = Ui.Icon("Coin", costPill, Kit.ItemGold, new Vector2(28f, 28f));
-            coin.rectTransform.At(Ui.Left, new Vector2(12f, 0f), new Vector2(28f, 28f));
+            Image coin = Ui.Icon("Coin", costPill, Kit.ItemGold, new Vector2(14f, 14f));
+            coin.rectTransform.At(Ui.Left, new Vector2(7f, 0f), new Vector2(14f, 14f));
 
-            TextMeshProUGUI cost = Ui.Label("Cost", costPill, "60", 24f, Ui.Gold, TextAlignmentOptions.Left, Kit.FontNumbers);
-            cost.rectTransform.At(Ui.Left, new Vector2(46f, 0f), new Vector2(70f, 30f));
+            TextMeshProUGUI cost = Ui.Label("Cost", costPill, "60", 17f, Ui.Gold, TextAlignmentOptions.Left, Kit.FontNumbers);
+            cost.rectTransform.At(Ui.Left, new Vector2(26f, 0f), new Vector2(44f, 21f));
 
-            RectTransform locked = Ui.Node("Locked", root).Stretch(4f, 4f, 4f, 4f);
+            RectTransform locked = Ui.Node("Locked", root).Stretch(2f, 2f, 2f, 2f);
             locked.Sprite(Kit.ItemSlotDim, new Color(1f, 1f, 1f, 0.82f));
             locked.gameObject.SetActive(false);
 
@@ -75,6 +75,72 @@ namespace Warlord.EditorTools.UI
             return colors;
         }
 
+        /// <summary>
+        /// Строка точки в панели гарнизона: название, счётчик «занято / лимит», кнопка покупки
+        /// охранника и три кнопки улучшения. Улучшения прячутся у точек без слота — у центра
+        /// и у флагов баз их нет (ГДД §2.3, §2.5).
+        /// </summary>
+        public static GameObject GarrisonRow()
+        {
+            RectTransform root = Ui.Node("UI_GarrisonRow", null);
+            root.sizeDelta = new Vector2(376f, 64f);
+            Image frame = root.Sprite(Kit.ListRow, Color.white);
+
+            TextMeshProUGUI name = Ui.Label("Name", root, "Аванпост", 17f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.TopLeft, new Vector2(13f, -8f), new Vector2(150f, 20f));
+
+            Image shield = Ui.Icon("Shield", root, Kit.IconDefense, new Vector2(13f, 13f));
+            shield.rectTransform.At(Ui.TopLeft, new Vector2(13f, -28f), new Vector2(13f, 13f));
+
+            TextMeshProUGUI guards = Ui.Label("Guards", root, "0 / 6", 15f, Ui.Gold, TextAlignmentOptions.Left, Kit.FontNumbers);
+            guards.rectTransform.At(Ui.TopLeft, new Vector2(30f, -28f), new Vector2(76f, 18f));
+
+            Button buy = Ui.Button("Buy", root, Kit.ButtonGreen, Color.white, out _);
+            buy.GetComponent<RectTransform>().At(Ui.TopRight, new Vector2(-11f, -7f), new Vector2(90f, 34f));
+
+            Image goldIcon = Ui.Icon("Gold", buy.transform, Kit.IconCoin, new Vector2(13f, 13f));
+            goldIcon.rectTransform.At(Ui.Left, new Vector2(8f, 0f), new Vector2(13f, 13f));
+
+            TextMeshProUGUI cost = Ui.Label("Cost", buy.transform, "70", 17f, Color.white, TextAlignmentOptions.Left, Kit.FontNumbers);
+            cost.rectTransform.At(Ui.Left, new Vector2(26f, 0f), new Vector2(56f, 21f));
+
+            RectTransform upgrades = Ui.Node("Upgrades", root).At(Ui.Bottom, new Vector2(0f, 6f), new Vector2(364f, 22f));
+            upgrades.Row(4f, TextAnchor.MiddleCenter);
+
+            Button[] buttons = new Button[3];
+            Image[] frames = new Image[3];
+            TextMeshProUGUI[] labels = new TextMeshProUGUI[3];
+
+            for (int i = 0; i < 3; i++)
+            {
+                Button button = Ui.Button("Upgrade_" + i, upgrades, Kit.ButtonNavy, Color.white, out Image background);
+                button.GetComponent<RectTransform>().sizeDelta = new Vector2(116f, 22f);
+
+                labels[i] = Ui.Label("Text", button.transform, "Улучшение", 13f, Color.white, TextAlignmentOptions.Center);
+                labels[i].rectTransform.Stretch();
+
+                buttons[i] = button;
+                frames[i] = background;
+            }
+
+            GarrisonPointRowView view = root.gameObject.AddComponent<GarrisonPointRowView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("nameLabel", name)
+                    .Ref("guardLabel", guards)
+                    .Ref("costLabel", cost)
+                    .Ref("buyButton", buy)
+                    .Ref("frame", frame)
+                    .Ref("upgradeGroup", upgrades.gameObject)
+                    .Refs("upgradeButtons", buttons)
+                    .Refs("upgradeFrames", frames)
+                    .Refs("upgradeLabels", labels);
+            }
+
+            return root.gameObject;
+        }
+
         #endregion
 
         #region Слот очереди постройки
@@ -82,15 +148,15 @@ namespace Warlord.EditorTools.UI
         public static GameObject SpawnQueueSlot()
         {
             RectTransform root = Ui.Node("UI_SpawnQueueSlot", null);
-            root.sizeDelta = new Vector2(74f, 74f);
+            root.sizeDelta = new Vector2(40f, 40f);
             root.Sprite(Kit.ItemSlotSmall, Color.white);
 
             CanvasGroup group = root.Group();
 
-            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(46f, 46f));
-            icon.rectTransform.At(Ui.Center, new Vector2(0f, 6f), new Vector2(46f, 46f));
+            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(23f, 23f));
+            icon.rectTransform.At(Ui.Center, new Vector2(0f, 3f), new Vector2(23f, 23f));
 
-            RectTransform barRoot = Ui.Node("Progress", root).At(Ui.Bottom, new Vector2(0f, 8f), new Vector2(56f, 8f));
+            RectTransform barRoot = Ui.Node("Progress", root).At(Ui.Bottom, new Vector2(0f, 4f), new Vector2(32f, 5f));
             barRoot.Sprite(Kit.ThinBarFrame, new Color(1f, 1f, 1f, 0.5f));
 
             RectTransform fillRect = Ui.Node("Fill", barRoot).Stretch(2f, 2f, 2f, 2f);
@@ -99,8 +165,8 @@ namespace Warlord.EditorTools.UI
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillAmount = 0f;
 
-            TextMeshProUGUI eta = Ui.Label("Eta", root, "", 15f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
-            eta.rectTransform.At(Ui.Top, new Vector2(0f, -4f), new Vector2(60f, 20f));
+            TextMeshProUGUI eta = Ui.Label("Eta", root, "", 11f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            eta.rectTransform.At(Ui.Top, new Vector2(0f, -2f), new Vector2(36f, 14f));
 
             SpawnQueueSlotView view = root.gameObject.AddComponent<SpawnQueueSlotView>();
 
@@ -122,38 +188,38 @@ namespace Warlord.EditorTools.UI
         public static GameObject UpgradeBranch()
         {
             RectTransform root = Ui.Node("UI_UpgradeBranch", null);
-            root.sizeDelta = new Vector2(560f, 96f);
+            root.sizeDelta = new Vector2(340f, 58f);
             root.Sprite(Kit.ListRow, Color.white);
 
-            Image icon = Ui.Icon("Icon", root, Kit.IconAttack, new Vector2(54f, 54f));
-            icon.rectTransform.At(Ui.Left, new Vector2(22f, 0f), new Vector2(54f, 54f));
+            Image icon = Ui.Icon("Icon", root, Kit.IconAttack, new Vector2(27f, 27f));
+            icon.rectTransform.At(Ui.Left, new Vector2(13f, 0f), new Vector2(27f, 27f));
 
-            TextMeshProUGUI name = Ui.Label("Name", root, "Урон", 25f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
-            name.rectTransform.At(Ui.TopLeft, new Vector2(90f, -16f), new Vector2(240f, 28f));
+            TextMeshProUGUI name = Ui.Label("Name", root, "Урон", 17f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.TopLeft, new Vector2(52f, -9f), new Vector2(150f, 20f));
 
-            TextMeshProUGUI description = Ui.Label("Description", root, "+8% к урону", 18f, Ui.InkMuted, TextAlignmentOptions.Left);
-            description.rectTransform.At(Ui.TopLeft, new Vector2(90f, -46f), new Vector2(300f, 22f));
+            TextMeshProUGUI description = Ui.Label("Description", root, "+8% к урону", 13f, Ui.InkMuted, TextAlignmentOptions.Left);
+            description.rectTransform.At(Ui.TopLeft, new Vector2(52f, -28f), new Vector2(186f, 16f));
 
-            RectTransform pips = Ui.Node("Pips", root).At(Ui.BottomLeft, new Vector2(90f, 12f), new Vector2(200f, 10f));
-            pips.Row(6f, TextAnchor.MiddleLeft);
+            RectTransform pips = Ui.Node("Pips", root).At(Ui.BottomLeft, new Vector2(52f, 7f), new Vector2(124f, 6f));
+            pips.Row(3f, TextAnchor.MiddleLeft);
 
             RectTransform pipTemplate = Ui.Node("Pip", pips);
-            pipTemplate.sizeDelta = new Vector2(26f, 10f);
+            pipTemplate.sizeDelta = new Vector2(15f, 6f);
             Image pip = pipTemplate.Sprite(Kit.PillSmall, new Color(1f, 1f, 1f, 0.25f));
             pipTemplate.gameObject.SetActive(false);
 
             Button buy = Ui.Button("Buy", root, Kit.ButtonGreen, Color.white, out _);
-            buy.GetComponent<RectTransform>().At(Ui.Right, new Vector2(-18f, 0f), new Vector2(126f, 60f));
+            buy.GetComponent<RectTransform>().At(Ui.Right, new Vector2(-11f, 0f), new Vector2(80f, 38f));
 
-            Image expIcon = Ui.Icon("Exp", buy.transform, Kit.IconExp, new Vector2(26f, 26f));
-            expIcon.rectTransform.At(Ui.Left, new Vector2(14f, 0f), new Vector2(26f, 26f));
+            Image expIcon = Ui.Icon("Exp", buy.transform, Kit.IconExp, new Vector2(13f, 13f));
+            expIcon.rectTransform.At(Ui.Left, new Vector2(8f, 0f), new Vector2(13f, 13f));
 
-            TextMeshProUGUI cost = Ui.Label("Cost", buy.transform, "60", 26f, Color.white, TextAlignmentOptions.Left, Kit.FontNumbers);
-            cost.rectTransform.At(Ui.Left, new Vector2(46f, 0f), new Vector2(70f, 32f));
+            TextMeshProUGUI cost = Ui.Label("Cost", buy.transform, "60", 17f, Color.white, TextAlignmentOptions.Left, Kit.FontNumbers);
+            cost.rectTransform.At(Ui.Left, new Vector2(25f, 0f), new Vector2(46f, 21f));
 
-            RectTransform maxed = Ui.Node("Maxed", root).At(Ui.Right, new Vector2(-18f, 0f), new Vector2(126f, 60f));
+            RectTransform maxed = Ui.Node("Maxed", root).At(Ui.Right, new Vector2(-11f, 0f), new Vector2(80f, 38f));
             maxed.Sprite(Kit.PillSmall, new Color(1f, 1f, 1f, 0.55f));
-            Ui.Label("Text", maxed, "MAX", 24f, Ui.Gold, TextAlignmentOptions.Center, Kit.FontTitle)
+            Ui.Label("Text", maxed, "MAX", 16f, Ui.Gold, TextAlignmentOptions.Center, Kit.FontTitle)
                 .rectTransform.Stretch();
             maxed.gameObject.SetActive(false);
 
@@ -181,39 +247,39 @@ namespace Warlord.EditorTools.UI
         public static GameObject FlagHoldRow()
         {
             RectTransform root = Ui.Node("UI_FlagHoldRow", null);
-            root.sizeDelta = new Vector2(430f, 50f);
+            root.sizeDelta = new Vector2(268f, 30f);
             root.Sprite(Kit.ListRowFlat, new Color(1f, 1f, 1f, 0.9f));
 
             CanvasGroup group = root.Group();
 
-            RectTransform tab = Ui.Node("ColorTab", root).At(Ui.Left, new Vector2(10f, 0f), new Vector2(8f, 30f));
+            RectTransform tab = Ui.Node("ColorTab", root).At(Ui.Left, new Vector2(6f, 0f), new Vector2(5f, 18f));
             Image colorTab = tab.Sprite(Kit.PillSmall, Color.white);
 
-            Image sigil = Ui.Icon("Sigil", root, null, new Vector2(24f, 24f));
-            sigil.rectTransform.At(Ui.Left, new Vector2(26f, 0f), new Vector2(24f, 24f));
+            Image sigil = Ui.Icon("Sigil", root, null, new Vector2(12f, 12f));
+            sigil.rectTransform.At(Ui.Left, new Vector2(15f, 0f), new Vector2(12f, 12f));
             sigil.enabled = false;
 
-            TextMeshProUGUI name = Ui.Label("Name", root, "Игрок 1", 20f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
-            name.rectTransform.At(Ui.Left, new Vector2(58f, 0f), new Vector2(120f, 26f));
+            TextMeshProUGUI name = Ui.Label("Name", root, "Игрок 1", 14f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.Left, new Vector2(34f, 0f), new Vector2(76f, 18f));
 
-            RectTransform barRoot = Ui.Node("Bar", root).At(Ui.Left, new Vector2(180f, 0f), new Vector2(160f, 16f));
+            RectTransform barRoot = Ui.Node("Bar", root).At(Ui.Left, new Vector2(112f, 0f), new Vector2(100f, 10f));
             barRoot.Sprite(Kit.BarFrame, Color.white);
 
-            RectTransform fillRect = Ui.Node("Fill", barRoot).Stretch(3f, 3f, 3f, 3f);
+            RectTransform fillRect = Ui.Node("Fill", barRoot).Stretch(2f, 2f, 2f, 2f);
             Image fill = fillRect.Sprite(Kit.BarFillGreen, Color.white);
             fill.type = Image.Type.Filled;
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillAmount = 0f;
 
-            TextMeshProUGUI time = Ui.Label("Time", root, "00:00", 20f, Ui.Ink, TextAlignmentOptions.Right, Kit.FontNumbers);
-            time.rectTransform.At(Ui.Right, new Vector2(-14f, 0f), new Vector2(78f, 26f));
+            TextMeshProUGUI time = Ui.Label("Time", root, "00:00", 14f, Ui.Ink, TextAlignmentOptions.Right, Kit.FontNumbers);
+            time.rectTransform.At(Ui.Right, new Vector2(-8f, 0f), new Vector2(50f, 18f));
 
-            Image holding = Ui.Icon("Holding", root, Kit.ItemFlag, new Vector2(24f, 24f));
-            holding.rectTransform.At(Ui.Right, new Vector2(-96f, 0f), new Vector2(24f, 24f));
+            Image holding = Ui.Icon("Holding", root, Kit.ItemFlag, new Vector2(12f, 12f));
+            holding.rectTransform.At(Ui.Right, new Vector2(-58f, 0f), new Vector2(12f, 12f));
             holding.gameObject.SetActive(false);
 
-            Image eliminated = Ui.Icon("Eliminated", root, Kit.ItemSkull, new Vector2(22f, 22f));
-            eliminated.rectTransform.At(Ui.Right, new Vector2(-96f, 0f), new Vector2(22f, 22f));
+            Image eliminated = Ui.Icon("Eliminated", root, Kit.ItemSkull, new Vector2(11f, 11f));
+            eliminated.rectTransform.At(Ui.Right, new Vector2(-58f, 0f), new Vector2(11f, 11f));
             eliminated.gameObject.SetActive(false);
 
             FlagRaceRowView view = root.gameObject.AddComponent<FlagRaceRowView>();
@@ -240,11 +306,11 @@ namespace Warlord.EditorTools.UI
         public static GameObject OrderButton()
         {
             RectTransform root = Ui.Node("UI_OrderButton", null);
-            root.sizeDelta = new Vector2(112f, 112f);
+            root.sizeDelta = new Vector2(60f, 60f);
 
             // Рамка выбора лежит под фоном и выступает за него на несколько пикселей:
             // видна ровно каёмка, а середину закрывает сама кнопка.
-            RectTransform selected = Ui.Node("Selected", root).Stretch(-7f, -7f, -7f, -7f);
+            RectTransform selected = Ui.Node("Selected", root).Stretch(-4f, -4f, -4f, -4f);
             selected.Sprite(Kit.Square, Ui.Gold);
             selected.gameObject.SetActive(false);
 
@@ -256,16 +322,16 @@ namespace Warlord.EditorTools.UI
             button.targetGraphic = background;
             button.colors = CardColors();
 
-            Image icon = Ui.Icon("Icon", root, Kit.IconSword, new Vector2(50f, 50f));
-            icon.rectTransform.At(Ui.Center, new Vector2(0f, 12f), new Vector2(50f, 50f));
+            Image icon = Ui.Icon("Icon", root, Kit.IconSword, new Vector2(25f, 25f));
+            icon.rectTransform.At(Ui.Center, new Vector2(0f, 6f), new Vector2(25f, 25f));
 
-            TextMeshProUGUI label = Ui.Label("Label", root, "Стоять", 18f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontTitle);
-            label.rectTransform.At(Ui.Bottom, new Vector2(0f, 12f), new Vector2(104f, 22f));
+            TextMeshProUGUI label = Ui.Label("Label", root, "Стоять", 12f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontTitle);
+            label.rectTransform.At(Ui.Bottom, new Vector2(0f, 5f), new Vector2(58f, 15f));
 
-            RectTransform hotkeyPill = Ui.Node("Hotkey", root).At(Ui.TopRight, new Vector2(-4f, -4f), new Vector2(30f, 30f));
+            RectTransform hotkeyPill = Ui.Node("Hotkey", root).At(Ui.TopRight, new Vector2(-2f, -2f), new Vector2(18f, 18f));
             hotkeyPill.Sprite(Kit.CircleSmall, Color.white);
 
-            TextMeshProUGUI hotkey = Ui.Label("Text", hotkeyPill, "1", 18f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
+            TextMeshProUGUI hotkey = Ui.Label("Text", hotkeyPill, "1", 12f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
             hotkey.rectTransform.Stretch();
 
             HotkeyButtonView view = root.gameObject.AddComponent<HotkeyButtonView>();
@@ -302,7 +368,7 @@ namespace Warlord.EditorTools.UI
             TextMeshProUGUI name = Ui.Label("Name", root, "Свободно", 24f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
             name.rectTransform.At(Ui.Left, new Vector2(76f, 0f), new Vector2(240f, 30f));
 
-            Image swatch = Ui.Icon("Swatch", root, Kit.CircleSmall, new Vector2(32f, 32f));
+            Image swatch = Ui.Icon("Swatch", root, Kit.CircleSmall, new Vector2(16f, 16f));
             swatch.rectTransform.At(Ui.Left, new Vector2(330f, 0f), new Vector2(32f, 32f));
 
             RectTransform readyTag = Ui.Node("ReadyBadge", root).At(Ui.Right, new Vector2(-20f, 0f), new Vector2(126f, 44f));
@@ -311,7 +377,7 @@ namespace Warlord.EditorTools.UI
                 .rectTransform.Stretch();
             readyTag.gameObject.SetActive(false);
 
-            Image hostBadge = Ui.Icon("HostBadge", root, Kit.IconCrown, new Vector2(28f, 28f), Ui.Gold);
+            Image hostBadge = Ui.Icon("HostBadge", root, Kit.IconCrown, new Vector2(14f, 14f), Ui.Gold);
             hostBadge.rectTransform.At(Ui.Right, new Vector2(-160f, 0f), new Vector2(28f, 28f));
             hostBadge.gameObject.SetActive(false);
 
@@ -362,7 +428,7 @@ namespace Warlord.EditorTools.UI
             TextMeshProUGUI army = Ui.Label("Army", root, "0", 24f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
             army.rectTransform.At(Ui.Right, new Vector2(-90f, 0f), new Vector2(90f, 30f));
 
-            Image winner = Ui.Icon("WinnerBadge", root, Kit.ItemTrophy, new Vector2(34f, 34f));
+            Image winner = Ui.Icon("WinnerBadge", root, Kit.ItemTrophy, new Vector2(17f, 17f));
             winner.rectTransform.At(Ui.Right, new Vector2(-24f, 0f), new Vector2(34f, 34f));
             winner.gameObject.SetActive(false);
 
@@ -390,15 +456,15 @@ namespace Warlord.EditorTools.UI
         public static GameObject MinimapMarker()
         {
             RectTransform root = Ui.Node("UI_MinimapMarker", null);
-            root.sizeDelta = new Vector2(20f, 20f);
+            root.sizeDelta = new Vector2(10f, 10f);
 
-            RectTransform ringRect = Ui.Node("Ring", root).Stretch(-6f, -6f, -6f, -6f);
+            RectTransform ringRect = Ui.Node("Ring", root).Stretch(-3f, -3f, -3f, -3f);
             Image ring = ringRect.Sprite(Kit.CircleSmall, new Color(1f, 1f, 1f, 0.85f));
             ring.enabled = false;
 
             Image dot = root.Sprite(Kit.CircleSmall, Color.white);
 
-            Image icon = Ui.Icon("Icon", root, null, new Vector2(14f, 14f));
+            Image icon = Ui.Icon("Icon", root, null, new Vector2(8f, 8f));
             icon.enabled = false;
 
             MinimapMarkerView view = root.gameObject.AddComponent<MinimapMarkerView>();
@@ -425,13 +491,13 @@ namespace Warlord.EditorTools.UI
         public static GameObject ArmyPresetCell()
         {
             RectTransform root = Ui.Node("UI_ArmyPresetCell", null);
-            root.sizeDelta = new Vector2(62f, 62f);
+            root.sizeDelta = new Vector2(34f, 34f);
 
             Image background = root.Sprite(Kit.ItemSlotSmall, new Color(1f, 1f, 1f, 0.18f));
             background.raycastTarget = true;
 
-            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(42f, 42f));
-            icon.rectTransform.At(Ui.Center, Vector2.zero, new Vector2(42f, 42f));
+            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(21f, 21f));
+            icon.rectTransform.At(Ui.Center, Vector2.zero, new Vector2(21f, 21f));
             icon.enabled = false;
 
             ArmyPresetCellView view = root.gameObject.AddComponent<ArmyPresetCellView>();

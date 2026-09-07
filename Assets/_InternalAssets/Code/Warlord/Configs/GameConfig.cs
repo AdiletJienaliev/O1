@@ -34,6 +34,12 @@ namespace Warlord.Configs
         [SerializeField] private CapturePointConfig centralFlag;
         [SerializeField] private CapturePointConfig baseFlag;
 
+        [Tooltip("Аванпост (ГДД §2.4). Отличается от центра откатом без гарнизона и слотом улучшения.")]
+        [SerializeField] private CapturePointConfig outpost;
+
+        [Tooltip("Три улучшения аванпоста (ГДД §2.5). Индекс в наборе — сетевой id выбора.")]
+        [SerializeField] private OutpostUpgradeSetConfig outpostUpgrades;
+
         [Header("Презентация")]
         [SerializeField] private TeamColorConfig teamColors;
 
@@ -55,6 +61,8 @@ namespace Warlord.Configs
         public UpgradeTreeConfig UpgradeTree => upgradeTree;
         public CapturePointConfig CentralFlag => centralFlag;
         public CapturePointConfig BaseFlag => baseFlag;
+        public CapturePointConfig Outpost => outpost;
+        public OutpostUpgradeSetConfig OutpostUpgrades => outpostUpgrades;
         public TeamColorConfig TeamColors => teamColors;
 
         /// <summary>Проверка целостности ассета — вызывается бутстрапом до старта сети.</summary>

@@ -31,8 +31,9 @@ namespace Warlord.Gameplay.Match
             _accumulator = new FixedStepAccumulator(config.Network.CombatTickDelta);
             _clock = new MatchClock(settings.MatchDuration);
 
-            _capture = BuildCaptureSystem();
-            ServerContext.BindCapture(_capture);
+            OutpostRewardHandler outposts = new(ServerContext);
+            _capture = BuildCaptureSystem(outposts);
+            ServerContext.BindCapture(_capture, outposts);
 
             // Точки выбывшего игрока должны обнулиться в том же такте, что и его выбывание.
             Events.PlayerEliminated += OnPlayerEliminated;
@@ -56,20 +57,23 @@ namespace Warlord.Gameplay.Match
             systems.Register(new ArmyEngagementSystem(ServerContext));
             systems.Register(new ArmyFormationSystem(ServerContext));
             systems.Register(new UnitAiSystem(ServerContext, UnitOrderBehaviourCatalog.CreateDefault()));
+            systems.Register(new GarrisonSystem(ServerContext));
             systems.Register(ServerContext.Projectiles);
             systems.Register(_combatResolution);
             systems.Register(new HeroLifecycleSystem(ServerContext));
             systems.Register(new BaseHealSystem(ServerContext));
+            systems.Register(new OutpostHealSystem(ServerContext));
             systems.Register(_victory);
 
             systems.NotifyMatchStarted();
         }
 
-        private CaptureSystem BuildCaptureSystem()
+        private CaptureSystem BuildCaptureSystem(OutpostRewardHandler outposts)
         {
-            CaptureSystem capture = new();
+            CaptureSystem capture = new(ServerContext);
             capture.RegisterHandler(new CentralFlagRewardHandler(ServerContext));
             capture.RegisterHandler(new BaseCaptureRewardHandler(ServerContext));
+            capture.RegisterHandler(outposts);
 
             // Точки лежат в сцене, поэтому собираем их один раз при старте матча:
             // так порядок OnStartServer у сценных объектов перестаёт что-либо значить.

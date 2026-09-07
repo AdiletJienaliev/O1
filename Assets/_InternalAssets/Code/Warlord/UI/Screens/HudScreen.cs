@@ -29,11 +29,17 @@ namespace Warlord.UI.Screens
         [SerializeField] private Button presetCloseButton;
         [SerializeField] private KeyCode presetHotkey = KeyCode.B;
 
+        [Header("Панель гарнизона")]
+        [SerializeField] private GameObject garrisonPanel;
+        [SerializeField] private Button garrisonToggleButton;
+        [SerializeField] private Button garrisonCloseButton;
+        [SerializeField] private KeyCode garrisonHotkey = KeyCode.G;
+
         private MatchManager _match;
         private bool _initialized;
 
         /// <summary>Открыта панель поверх боя — курсор нужно отпустить, камера должна замереть.</summary>
-        public bool WantsCursor => IsOpen(upgradePanel) || IsOpen(presetPanel);
+        public bool WantsCursor => IsOpen(upgradePanel) || IsOpen(presetPanel) || IsOpen(garrisonPanel);
 
         protected override void Awake()
         {
@@ -51,8 +57,13 @@ namespace Warlord.UI.Screens
             if (presetCloseButton != null)
                 presetCloseButton.onClick.AddListener(() => Close(presetPanel));
 
-            Close(upgradePanel);
-            Close(presetPanel);
+            if (garrisonToggleButton != null)
+                garrisonToggleButton.onClick.AddListener(() => Toggle(garrisonPanel));
+
+            if (garrisonCloseButton != null)
+                garrisonCloseButton.onClick.AddListener(() => Close(garrisonPanel));
+
+            CloseAll();
         }
 
         /// <summary>Прокидывает матч во все виджеты. Повторные вызовы безопасны.</summary>
@@ -100,17 +111,16 @@ namespace Warlord.UI.Screens
             if (Input.GetKeyDown(presetHotkey))
                 Toggle(presetPanel);
 
+            if (Input.GetKeyDown(garrisonHotkey))
+                Toggle(garrisonPanel);
+
             PlayerState player = PlayerState.Local;
 
             for (int i = 0; i < widgets.Length; i++)
                 widgets[i]?.Refresh(player);
         }
 
-        protected override void OnHidden()
-        {
-            Close(upgradePanel);
-            Close(presetPanel);
-        }
+        protected override void OnHidden() => CloseAll();
 
         private void Toggle(GameObject panel)
         {
@@ -119,10 +129,15 @@ namespace Warlord.UI.Screens
 
             bool open = !panel.activeSelf;
 
+            CloseAll();
+            panel.SetActive(open);
+        }
+
+        private void CloseAll()
+        {
             Close(upgradePanel);
             Close(presetPanel);
-
-            panel.SetActive(open);
+            Close(garrisonPanel);
         }
 
         private static void Close(GameObject panel)

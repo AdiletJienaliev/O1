@@ -37,6 +37,12 @@ namespace Warlord.Core
 
         public const int Formation = 400;
         public const int UnitAi = 500;
+
+        /// <summary>
+        /// Охранники. Отдельно от <see cref="UnitAi"/>, потому что они не в армии и приказов
+        /// не получают: у них своя точка, свой слот и свой поводок (ГДД §1.4).
+        /// </summary>
+        public const int Garrison = 520;
         public const int HeroCombat = 550;
         public const int Projectiles = 600;
 

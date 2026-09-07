@@ -7,6 +7,12 @@ namespace Warlord.Gameplay.Capture
     public enum CapturePointKind : byte
     {
         CentralFlag = 0,
-        BaseFlag = 1
+        BaseFlag = 1,
+
+        /// <summary>
+        /// Аванпост (ГДД §2.4). От центра отличается двумя вещами: откатывается без гарнизона
+        /// и даёт владельцу улучшение на выбор.
+        /// </summary>
+        Outpost = 2
     }
 }

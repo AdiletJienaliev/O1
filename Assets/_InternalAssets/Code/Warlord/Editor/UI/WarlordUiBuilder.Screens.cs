@@ -331,17 +331,17 @@ namespace Warlord.EditorTools.UI
         private static RectTransform Chip(string name, Transform parent, Sprite icon, out TextMeshProUGUI value, out TextMeshProUGUI caption)
         {
             RectTransform chip = Ui.Node(name, parent);
-            chip.sizeDelta = new Vector2(210f, 58f);
+            chip.sizeDelta = new Vector2(126f, 36f);
             chip.Sprite(Kit.Pill, Color.white);
 
-            Image iconImage = Ui.Icon("Icon", chip, icon, new Vector2(36f, 36f));
-            iconImage.rectTransform.At(Ui.Left, new Vector2(14f, 0f), new Vector2(36f, 36f));
+            Image iconImage = Ui.Icon("Icon", chip, icon, new Vector2(18f, 18f));
+            iconImage.rectTransform.At(Ui.Left, new Vector2(8f, 0f), new Vector2(18f, 18f));
 
-            value = Ui.Label("Value", chip, "0", 30f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontNumbers);
-            value.rectTransform.At(Ui.Left, new Vector2(58f, 4f), new Vector2(110f, 34f));
+            value = Ui.Label("Value", chip, "0", 20f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontNumbers);
+            value.rectTransform.At(Ui.Left, new Vector2(31f, 3f), new Vector2(74f, 22f));
 
-            caption = Ui.Label("Caption", chip, "", 17f, Ui.InkMuted, TextAlignmentOptions.Left);
-            caption.rectTransform.At(Ui.Left, new Vector2(58f, -16f), new Vector2(140f, 20f));
+            caption = Ui.Label("Caption", chip, "", 12f, Ui.InkMuted, TextAlignmentOptions.Left);
+            caption.rectTransform.At(Ui.Left, new Vector2(31f, -10f), new Vector2(88f, 14f));
 
             return chip;
         }

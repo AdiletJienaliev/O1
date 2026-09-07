@@ -116,6 +116,20 @@ namespace Warlord.Core
         Disconnected = 2
     }
 
+    /// <summary>
+    /// Улучшение аванпоста (ГДД §2.5). Синкается как byte в паре с индексом в наборе,
+    /// поэтому порядок значений менять нельзя.
+    /// </summary>
+    public enum OutpostUpgradeType : byte
+    {
+        /// <summary>«Снабжение»: доход и место под гарнизон. Выбор по умолчанию.</summary>
+        Supply = 0,
+        /// <summary>«Кузница»: быстрее постройка и лечение вокруг точки.</summary>
+        Forge = 1,
+        /// <summary>«Наёмники»: новый юнит в панели покупки и дешёвые живучие охранники.</summary>
+        Mercenaries = 2
+    }
+
     /// <summary>Результат серверной валидации клиентской команды.</summary>
     public enum CommandRejection : byte
     {
@@ -129,6 +143,12 @@ namespace Warlord.Core
         UpgradeUnavailable = 7,
         UnknownUnit = 8,
         UnknownFormation = 9,
-        OutOfBounds = 10
+        OutOfBounds = 10,
+        /// <summary>На точке уже стоит максимум охранников этого игрока (ГДД §1.6).</summary>
+        GarrisonFull = 11,
+        /// <summary>Точка не принадлежит игроку: ни охранника купить, ни улучшение выбрать.</summary>
+        PointNotOwned = 12,
+        /// <summary>У точки нет слота улучшения или выбор уже сделан.</summary>
+        UpgradeSlotUnavailable = 13
     }
 }

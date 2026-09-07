@@ -37,13 +37,25 @@ namespace Warlord.Domain.Capture
 
         public CaptureStatus Status { get; private set; }
 
+        /// <summary>
+        /// Точка откатывается из-за пустого гарнизона. Отдельно от <see cref="Status"/>:
+        /// владелец у неё прежний и статус остаётся Owned, но кольцо в мире обязано
+        /// пульсировать и убывать (ГДД §2.7) — иначе игрок узнаёт о проблеме постфактум.
+        /// </summary>
+        public bool Decaying { get; private set; }
+
         /// <summary>Точка перешла к новому владельцу. Аргумент — слот нового владельца.</summary>
         public event Action<int> Captured;
 
         /// <summary>Владелец потерял точку, она стала нейтральной. Аргумент — слот бывшего владельца.</summary>
         public event Action<int> OwnershipLost;
 
-        public void Tick(float deltaTime, CaptureOccupancy occupancy)
+        /// <param name="ownerHasGarrison">
+        /// Есть ли у владельца живой юнит рядом с точкой. Значим только для аванпостов
+        /// с <see cref="CapturePointConfig.garrisonDecay"/>: без гарнизона такая точка
+        /// медленно откатывается сама (ГДД §2.4).
+        /// </param>
+        public void Tick(float deltaTime, CaptureOccupancy occupancy, bool ownerHasGarrison = true)
         {
             // 1. Двое и более разных игроков в зоне — всё заморожено (ГДД §9.2).
             if (occupancy.DistinctSlots >= 2)
@@ -55,7 +67,7 @@ namespace Warlord.Domain.Capture
             // 2. В зоне никого — работает только спад.
             if (occupancy.DistinctSlots == 0)
             {
-                TickUnoccupied(deltaTime);
+                TickUnoccupied(deltaTime, ownerHasGarrison);
                 return;
             }
 
@@ -117,9 +129,10 @@ namespace Warlord.Domain.Capture
             OwnerProgress = 0f;
             ResetChallenger();
             Status = CaptureStatus.Neutral;
+            Decaying = false;
         }
 
-        private void TickUnoccupied(float deltaTime)
+        private void TickUnoccupied(float deltaTime, bool ownerHasGarrison)
         {
             float decay = _config.decayRatePerSecond * deltaTime;
 
@@ -130,15 +143,47 @@ namespace Warlord.Domain.Capture
                     ResetChallenger();
             }
 
+            if (!PlayerSlots.IsValid(OwnerSlot))
+            {
+                Status = ChallengerProgress > 0f ? CaptureStatus.Capturing : CaptureStatus.Neutral;
+                return;
+            }
+
+            // Аванпост без гарнизона откатывается сам (ГДД §2.4). Это и есть весь механизм
+            // против снежного кома: удержание четырёх точек требует четырёх гарнизонов,
+            // а они съедают тот же лимит, из которого собирается полевая армия.
+            //
+            // Откат считается только здесь, в пустой зоне: пока точку сбивает чужой полководец,
+            // работает decapture, и складывать с ним ещё и откат значило бы наказывать дважды.
+            if (_config.garrisonDecay && !ownerHasGarrison)
+            {
+                Decaying = true;
+                OwnerProgress -= _config.garrisonDecayRatePerSecond * deltaTime;
+
+                if (OwnerProgress <= 0f)
+                {
+                    OwnerProgress = 0f;
+                    int previousOwner = OwnerSlot;
+                    OwnerSlot = PlayerSlots.None;
+                    ResetChallenger();
+                    Status = CaptureStatus.Neutral;
+                    Decaying = false;
+                    OwnershipLost?.Invoke(previousOwner);
+                    return;
+                }
+
+                Status = CaptureStatus.Owned;
+                return;
+            }
+
+            Decaying = false;
+
             // Завершённая шкала (100%) не спадает: точка остаётся у владельца до перезахвата (ГДД §9.4).
             // Недобитая шкала владельца, наоборот, восстанавливается — базу должно быть легко отбить (ГДД §10).
-            if (PlayerSlots.IsValid(OwnerSlot) && OwnerProgress < 1f && _config.ownerBarRecoversWhenEmpty)
+            if (OwnerProgress < 1f && _config.ownerBarRecoversWhenEmpty)
                 OwnerProgress = Mathf.Min(1f, OwnerProgress + decay);
 
-            if (PlayerSlots.IsValid(OwnerSlot))
-                Status = CaptureStatus.Owned;
-            else
-                Status = ChallengerProgress > 0f ? CaptureStatus.Capturing : CaptureStatus.Neutral;
+            Status = CaptureStatus.Owned;
         }
 
         private float StackMultiplier(int playersInZone)

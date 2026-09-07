@@ -29,6 +29,7 @@ namespace Warlord.EditorTools.UI
             public GameObject MatchResultRow;
             public GameObject MinimapMarker;
             public GameObject ArmyPresetCell;
+            public GameObject GarrisonRow;
         }
 
         [MenuItem("Warlord/UI/1. Собрать префабы интерфейса", priority = 0)]
@@ -46,7 +47,8 @@ namespace Warlord.EditorTools.UI
                 LobbySlot = Save(UiTemplates.LobbySlot(), "UI_LobbySlot"),
                 MatchResultRow = Save(UiTemplates.MatchResultRow(), "UI_MatchResultRow"),
                 MinimapMarker = Save(UiTemplates.MinimapMarker(), "UI_MinimapMarker"),
-                ArmyPresetCell = Save(UiTemplates.ArmyPresetCell(), "UI_ArmyPresetCell")
+                ArmyPresetCell = Save(UiTemplates.ArmyPresetCell(), "UI_ArmyPresetCell"),
+                GarrisonRow = Save(UiTemplates.GarrisonRow(), "UI_GarrisonRow")
             };
 
             GameObject root = BuildRoot(templates);

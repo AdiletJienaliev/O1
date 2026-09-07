@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e6035dc5f083af45a6527fe3183ac2f, type: 3}
+  m_Name: CapturePoint_Outpost
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Configs.CapturePointConfig
+  pointId: outpost
+  displayName: "\u0410\u0432\u0430\u043D\u043F\u043E\u0441\u0442"
+  captureRadius: 5
+  captureRatePerSecond: 0.1
+  decaptureRatePerSecond: 0.12
+  decayRatePerSecond: 0.03
+  stackMultiplierPerExtraPlayer: 0
+  contestedByUnits: 0
+  contestedByHeroes: 1
+  ownerBarRecoversWhenEmpty: 0
+  garrisonDecay: 1
+  garrisonDecayRatePerSecond: 0.03
+  garrisonCheckRadius: 12
+  maxGuards: 6
+  garrisonRingRadius: 4.5
+  hasUpgradeSlot: 1
+  allowsRallyPoint: 1
+  rewardType: 0
+  startsOwnedByZoneOwner: 0

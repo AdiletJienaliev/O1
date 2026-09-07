@@ -84,6 +84,13 @@ namespace Warlord.EditorTools
             new("Unit_SpearMan", "Unit_SpearMan", "SwordShield", "SwordShield02",
                 new[] { "Combo01" }, true),
 
+            // Охранник-копейщик (ГДД §1.2). Модель и замах свои, чтобы гарнизон на точке
+            // не путался с полевым строем: игрок должен различать их с одного взгляда.
+            // Щита в конфиге нет намеренно — приказа «Защита» охранник не получает никогда,
+            // и поднятый блок ему просто нечем включить (см. GuardRoutine).
+            new("Unit_GuardSpear", "Unit_GuardSpear", "SwordShield", "SwordShield04",
+                new[] { "Combo02", "NormalAttack02" }, false),
+
             // Лучник: щита нет, по приказу «Защита» просто держит слот и стреляет.
             new("Unit_Archer", "Unit_Archer", "Bow", "Bow02",
                 new[] { "Attack01" }, false),

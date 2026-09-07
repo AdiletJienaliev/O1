@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Warlord.Core;
 using Warlord.Gameplay.Match;
+using Warlord.Gameplay.Players;
 
 namespace Warlord.Gameplay.Capture
 {
@@ -13,6 +14,9 @@ namespace Warlord.Gameplay.Capture
     {
         private readonly List<CapturePointBehaviour> _points = new(8);
         private readonly Dictionary<CapturePointKind, ICaptureRewardHandler> _handlers = new();
+        private readonly IMatchContext _context;
+
+        public CaptureSystem(IMatchContext context) => _context = context;
 
         public int Order => ServerSystemOrder.Capture;
 
@@ -55,7 +59,29 @@ namespace Warlord.Gameplay.Capture
         public void Tick(float deltaTime)
         {
             for (int i = 0; i < _points.Count; i++)
-                _points[i].ServerTick(deltaTime);
+            {
+                CapturePointBehaviour point = _points[i];
+
+                point.ServerTick(deltaTime);
+                PublishGuardCount(point);
+            }
+        }
+
+        /// <summary>
+        /// Значок щита с числом охранников над точкой (ГДД §1.9). Считается здесь, а не в
+        /// гарнизонной системе: там обход идёт по игрокам, а здесь по точкам — и точка,
+        /// оставшаяся без гарнизона совсем, обнулила бы счётчик только случайно.
+        /// </summary>
+        private void PublishGuardCount(CapturePointBehaviour point)
+        {
+            if (point.MaxGuards <= 0)
+                return;
+
+            PlayerState owner = _context != null ? _context.Players.Get(point.OwnerSlot) : null;
+
+            point.ServerSetGuardCount(owner != null && owner.Garrison != null
+                ? owner.Garrison.CountAt(point)
+                : 0);
         }
 
         /// <summary>Точки, принадлежавшие выбывшему игроку, обнуляются (ГДД §10.5: крепость становится руиной).</summary>
@@ -64,8 +90,18 @@ namespace Warlord.Gameplay.Capture
             for (int i = 0; i < _points.Count; i++)
             {
                 CapturePointBehaviour point = _points[i];
-                if (point.OwnerSlot == slot && point.Kind == CapturePointKind.CentralFlag)
-                    point.ServerForceNeutral();
+
+                if (point.OwnerSlot != slot)
+                    continue;
+
+                // Флаг базы остаётся у захватчика — он и есть трофей за выбивание игрока.
+                // Центр и аванпосты возвращаются в нейтраль: иначе выбывший продолжал бы
+                // держать половину карты и мешать живым.
+                if (point.Kind == CapturePointKind.BaseFlag)
+                    continue;
+
+                point.ServerForceNeutral();
+                point.ServerClearUpgrade();
             }
         }
 

@@ -20,11 +20,17 @@ namespace Warlord.Domain.Economy
 
         /// <param name="holdsCentralFlag">Флаг под контролем игрока прямо сейчас.</param>
         /// <param name="capturedBases">Сколько чужих баз игрок захватил.</param>
+        /// <param name="outpostGold">
+        /// Доход с аванпостов, уже с учётом стакинга улучшений (ГДД §2.5). Приходит числом,
+        /// а не списком точек: правило убывания одинаковых улучшений считает
+        /// <see cref="Warlord.Domain.Upgrades.OutpostUpgradeStack"/>, и дублировать его здесь незачем.
+        /// </param>
         public static IncomeProfile Calculate(
             GameModeConfig mode,
             in MatchSettings settings,
             bool holdsCentralFlag,
-            int capturedBases)
+            int capturedBases,
+            float outpostGold = 0f)
         {
             if (mode == null)
                 return default;
@@ -36,6 +42,8 @@ namespace Warlord.Domain.Economy
 
             if (capturedBases > 0)
                 gold += mode.goldPerSecondPerCapturedBase * capturedBases;
+
+            gold += outpostGold;
 
             gold *= settings.IncomeMultiplier;
 

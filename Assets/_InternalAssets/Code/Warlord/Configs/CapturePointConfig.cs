@@ -40,6 +40,30 @@ namespace Warlord.Configs
         [Tooltip("Восстанавливается ли недобитая шкала владельца, когда в зоне никого.")]
         public bool ownerBarRecoversWhenEmpty = true;
 
+        [Header("Гарнизон")]
+        [Tooltip("Откатывается ли шкала, когда у владельца рядом с точкой нет ни одного живого юнита (ГДД §2.4). " +
+                 "Ключевое отличие аванпоста от центра: центр не откатывается, аванпост — да.")]
+        public bool garrisonDecay;
+
+        [Tooltip("Скорость отката без гарнизона, доля шкалы в секунду. 0.03 = ~33 секунды до нуля.")]
+        [Range(0f, 1f)] public float garrisonDecayRatePerSecond = 0.03f;
+
+        [Tooltip("В каком радиусе ищется живой юнит владельца, чтобы откат не начался, м.")]
+        [Min(1f)] public float garrisonCheckRadius = 12f;
+
+        [Tooltip("Сколько охранников один игрок держит на этой точке. Ниже этого числа сработает и лимит из UnitConfig.")]
+        [Min(0)] public int maxGuards = 6;
+
+        [Tooltip("Радиус кольца, по которому расставляются охранники, м (ГДД §1.7).")]
+        [Min(1f)] public float garrisonRingRadius = 4.5f;
+
+        [Header("Улучшение")]
+        [Tooltip("Выбирает ли владелец улучшение при захвате (ГДД §2.5). Есть только у аванпостов.")]
+        public bool hasUpgradeSlot;
+
+        [Tooltip("Можно ли назначить эту точку точкой сбора новых юнитов (ГДД §2.6).")]
+        public bool allowsRallyPoint;
+
         [Header("Награда")]
         public CaptureRewardType rewardType = CaptureRewardType.Continuous;
 

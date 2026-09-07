@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using Warlord.Configs;
 using Warlord.Core;
 using Warlord.Domain.Match;
+using Warlord.Gameplay.Capture;
 using Warlord.Gameplay.Combat;
 using Warlord.Gameplay.Players;
 using Warlord.Gameplay.Units;
@@ -40,5 +42,14 @@ namespace Warlord.Gameplay.Match
 
         /// <summary>Слот, владеющий центральным флагом, или <see cref="PlayerSlots.None"/>.</summary>
         int CentralFlagOwner { get; }
+
+        /// <summary>Все точки захвата в сцене. Собираются один раз при старте матча.</summary>
+        IReadOnlyList<CapturePointBehaviour> CapturePoints { get; }
+
+        /// <summary>
+        /// Пересобрать суммарный эффект улучшений аванпостов игрока (ГДД §2.5).
+        /// Вызывается при смене владельца точки и при выборе улучшения.
+        /// </summary>
+        void RebuildOutpostUpgrades(int slot);
     }
 }
