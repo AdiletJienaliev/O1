@@ -1,4 +1,4 @@
-using Warlord.Configs;
+﻿using Warlord.Configs;
 using Warlord.Core;
 using Warlord.Domain.Combat;
 using Warlord.Gameplay.Army;
@@ -23,7 +23,7 @@ namespace Warlord.Gameplay.Units.Behaviours
                 ? unit.LastAttacker
                 : UnitCombatRoutine.AcquireTarget(unit, context, unit.Stats.AggroRadius);
 
-            if (target != null && target.IsAlive)
+            if (target.IsAliveTarget())
             {
                 // Отвечаем, только если обидчик сам подошёл на дистанцию удара:
                 // строй важнее размена, за противником никто не бежит.
@@ -31,7 +31,7 @@ namespace Warlord.Gameplay.Units.Behaviours
                     return;
             }
 
-            UnitCombatRoutine.ReturnToSlot(unit, army, context);
+            UnitCombatRoutine.ReturnToSlot(unit, army, context, deltaTime);
         }
     }
 }

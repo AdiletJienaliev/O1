@@ -1,5 +1,4 @@
 using UnityEngine;
-using Warlord.Configs;
 
 namespace Warlord.Networking.Sync
 {
@@ -12,13 +11,13 @@ namespace Warlord.Networking.Sync
         private readonly Vector3 _min;
         private readonly Vector3 _size;
 
-        public TransformQuantizer(MapConfig map)
+        /// <param name="arenaSize">Сторона арены, м. Задаётся в сцене компонентом MatchArena.</param>
+        public TransformQuantizer(float arenaSize, Vector2 heightRange)
         {
-            float half = map != null ? map.size * 0.5f : 80f;
-            Vector2 heights = map != null ? map.heightRange : new Vector2(-20f, 60f);
+            float half = Mathf.Max(1f, arenaSize) * 0.5f;
 
-            _min = new Vector3(-half, heights.x, -half);
-            _size = new Vector3(half * 2f, Mathf.Max(1f, heights.y - heights.x), half * 2f);
+            _min = new Vector3(-half, heightRange.x, -half);
+            _size = new Vector3(half * 2f, Mathf.Max(1f, heightRange.y - heightRange.x), half * 2f);
         }
 
         public void Encode(Vector3 position, out ushort x, out ushort y, out ushort z)

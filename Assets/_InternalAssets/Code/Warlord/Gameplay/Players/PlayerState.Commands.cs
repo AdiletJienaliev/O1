@@ -4,10 +4,12 @@ using UnityEngine;
 using Warlord.Configs;
 using Warlord.Configs.Upgrades;
 using Warlord.Core;
+using Warlord.Domain.Formations;
 using Warlord.Domain.Match;
 using Warlord.Domain.Upgrades;
 using Warlord.Gameplay.Army;
 using Warlord.Gameplay.Match;
+using Warlord.Gameplay.World;
 
 namespace Warlord.Gameplay.Players
 {
@@ -76,7 +78,7 @@ namespace Warlord.Gameplay.Players
                 return false;
 
             PlayerBaseAnchor anchor = _context.Players.GetBaseAnchor(Slot);
-            float radius = _context.Config.Hero.buyZoneRadius;
+            float radius = anchor.BuyZoneRadius;
 
             Vector3 delta = Hero.Position - anchor.Center;
             delta.y = 0f;
@@ -109,15 +111,40 @@ namespace Warlord.Gameplay.Players
                 return;
             }
 
-            // Точку приказа клиент шлёт сам, поэтому её обязательно зажимаем по карте.
-            MapConfig map = _context.Config.Map;
-            if (!map.Contains(anchorPosition))
+            // Точку приказа клиент шлёт сам, поэтому её обязательно проверяем по арене.
+            if (!MatchArena.Contains(anchorPosition))
             {
                 RejectCommand(CommandRejection.OutOfBounds);
                 return;
             }
 
             ServerSetOrder(new ArmyOrder((ArmyOrderType)orderType, anchorPosition, anchorYaw));
+        }
+
+        /// <summary>
+        /// Пользовательская расстановка армии. Приходит от владельца целиком и редко —
+        /// один раз при настройке, поэтому шлём массивом, а не дельтами.
+        /// </summary>
+        [ServerRpc]
+        public void CmdSetArmyPreset(byte[] packed)
+        {
+            if (IsEliminated)
+            {
+                RejectCommand(CommandRejection.PlayerEliminated);
+                return;
+            }
+
+            // Данные пришли от клиента: и длина, и индексы типов проверяются целиком,
+            // иначе подделанный пакет уронил бы решатель строя на сервере.
+            ArmyPreset preset = new();
+
+            if (!preset.Unpack(packed, _context.Config.Roster.Count))
+            {
+                RejectCommand(CommandRejection.UnknownFormation);
+                return;
+            }
+
+            Army.ApplyPreset(preset);
         }
 
         [ServerRpc]

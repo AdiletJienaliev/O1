@@ -18,6 +18,7 @@ namespace Warlord.Gameplay.Units.Behaviours
             catalog.Register(new HoldGroundBehaviour());
             catalog.Register(new FollowLeaderBehaviour());
             catalog.Register(new AttackMoveBehaviour());
+            catalog.Register(new DefendBehaviour());
             return catalog;
         }
 

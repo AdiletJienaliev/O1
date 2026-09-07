@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 122360b80616ddc44af2e8008e9fce20, type: 3}
+  m_Name: Unit_Mag
+  m_EditorClassIdentifier: 
+  unitId: mag
+  displayName: "\u041C\u0430\u0433"
+  icon: {fileID: 0}
+  prefab: {fileID: 2420842358163579246, guid: 4f55e4e3f42a04046bdbf2b686141b73, type: 3}
+  cost: 60
+  spawnTime: 2
+  maxHealth: 100
+  damagePerHit: 10
+  attackInterval: 0.5
+  attackRange: 2
+  armor: 0
+  splashRadius: 2
+  splashDamageFactor: 0.6
+  moveSpeed: 4.5
+  turnSpeed: 360
+  aggroRadiusOverride: 0
+  formationSlotPriority: 1
+  isRanged: 1
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 25

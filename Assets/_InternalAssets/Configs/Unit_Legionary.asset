@@ -23,10 +23,17 @@ MonoBehaviour:
   attackInterval: 1
   attackRange: 2
   armor: 0
+  splashRadius: 0
+  splashDamageFactor: 0.6
   moveSpeed: 3.6
+  walkSpeedFactor: 0.45
+  runDistance: 4
   turnSpeed: 360
   aggroRadiusOverride: 0
   formationSlotPriority: 0
+  hasShield: 1
+  blockAngle: 75
+  blockDamageFactor: 0
   isRanged: 0
   projectilePrefab: {fileID: 0}
   projectileSpeed: 25

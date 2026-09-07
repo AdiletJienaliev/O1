@@ -415,5 +415,36 @@ namespace Warlord.EditorTools.UI
         }
 
         #endregion
+
+        #region Клетка расстановки армии
+
+        /// <summary>
+        /// Одна клетка поля расстановки. Фон обязан ловить лучи: по нему игрок и рисует,
+        /// а иконка сверху лучи не перехватывает, иначе мазок рвался бы на занятых клетках.
+        /// </summary>
+        public static GameObject ArmyPresetCell()
+        {
+            RectTransform root = Ui.Node("UI_ArmyPresetCell", null);
+            root.sizeDelta = new Vector2(62f, 62f);
+
+            Image background = root.Sprite(Kit.ItemSlotSmall, new Color(1f, 1f, 1f, 0.18f));
+            background.raycastTarget = true;
+
+            Image icon = Ui.Icon("Icon", root, Kit.ItemSword, new Vector2(42f, 42f));
+            icon.rectTransform.At(Ui.Center, Vector2.zero, new Vector2(42f, 42f));
+            icon.enabled = false;
+
+            ArmyPresetCellView view = root.gameObject.AddComponent<ArmyPresetCellView>();
+
+            using (Bind bind = new(view))
+            {
+                bind.Ref("background", background)
+                    .Ref("icon", icon);
+            }
+
+            return root.gameObject;
+        }
+
+        #endregion
     }
 }

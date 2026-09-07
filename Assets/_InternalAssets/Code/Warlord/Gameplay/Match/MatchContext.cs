@@ -26,10 +26,10 @@ namespace Warlord.Gameplay.Match
             int slotCount = settings.SlotCount;
 
             Scores = new ScoreBoard(slotCount);
-            Players = new PlayerRegistry(config.Map, slotCount);
+            Players = new PlayerRegistry(slotCount);
             Targeting = new TargetingService(slotCount);
             Damage = new DamageQueue();
-            Projectiles = new ProjectileSystem(Damage);
+            Projectiles = new ProjectileSystem(Damage, Targeting);
             LagCompensation = new SnapshotLagCompensator(config.Network);
             Systems = new ServerSystemScheduler();
 

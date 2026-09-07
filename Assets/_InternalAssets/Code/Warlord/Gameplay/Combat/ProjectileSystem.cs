@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Warlord.Core;
@@ -19,22 +19,39 @@ namespace Warlord.Gameplay.Combat
             public ICombatTarget Target;
             public int RawDamage;
             public float RemainingTime;
+
+            /// <summary>Радиус накрытия в точке прилёта. 0 — обычная стрела по одной цели.</summary>
+            public float SplashRadius;
+
+            public float SplashFactor;
         }
 
         private readonly DamageQueue _damageQueue;
+        private readonly TargetingService _targeting;
         private readonly List<Projectile> _inFlight = new(64);
 
-        public ProjectileSystem(DamageQueue damageQueue) => _damageQueue = damageQueue;
+        public ProjectileSystem(DamageQueue damageQueue, TargetingService targeting)
+        {
+            _damageQueue = damageQueue;
+            _targeting = targeting;
+        }
 
         public int Order => ServerSystemOrder.Projectiles;
 
         /// <summary>Снаряд выпущен: позиция старта, цель, время полёта. Для визуала на клиентах.</summary>
         public event Action<Vector3, ICombatTarget, float> ProjectileLaunched;
 
-        public void Launch(ICombatTarget attacker, ICombatTarget target, int rawDamage, float projectileSpeed)
+        /// <returns>Время полёта, с. Ноль — снаряд не выпущен. По нему клиенты заводят стрелу.</returns>
+        public float Launch(
+            ICombatTarget attacker,
+            ICombatTarget target,
+            int rawDamage,
+            float projectileSpeed,
+            float splashRadius = 0f,
+            float splashFactor = 0f)
         {
-            if (attacker == null || target == null || !target.IsAlive || projectileSpeed <= 0f)
-                return;
+            if (!attacker.Exists() || !target.IsAliveTarget() || projectileSpeed <= 0f)
+                return 0f;
 
             float distance = Vector3.Distance(attacker.Position, target.Position);
             float flightTime = distance / projectileSpeed;
@@ -44,10 +61,13 @@ namespace Warlord.Gameplay.Combat
                 Attacker = attacker,
                 Target = target,
                 RawDamage = rawDamage,
-                RemainingTime = flightTime
+                RemainingTime = flightTime,
+                SplashRadius = splashRadius,
+                SplashFactor = splashFactor
             });
 
             ProjectileLaunched?.Invoke(attacker.Position, target, flightTime);
+            return flightTime;
         }
 
         public void Tick(float deltaTime)
@@ -56,8 +76,8 @@ namespace Warlord.Gameplay.Combat
             {
                 Projectile projectile = _inFlight[i];
 
-                // Цель умерла до прилёта — стрела уходит в пустоту, урон не переносится.
-                if (projectile.Target == null || !projectile.Target.IsAlive)
+                // Цель умерла или была уничтожена до прилёта — стрела уходит в пустоту.
+                if (!projectile.Target.IsAliveTarget())
                 {
                     _inFlight.RemoveAt(i);
                     continue;
@@ -71,7 +91,15 @@ namespace Warlord.Gameplay.Combat
                     continue;
                 }
 
-                _damageQueue.Enqueue(projectile.Attacker, projectile.Target, projectile.RawDamage);
+                SplashDamage.Apply(
+                    _damageQueue,
+                    _targeting,
+                    projectile.Attacker.OrNull(),
+                    projectile.Target,
+                    projectile.RawDamage,
+                    projectile.SplashRadius,
+                    projectile.SplashFactor);
+
                 _inFlight.RemoveAt(i);
             }
         }

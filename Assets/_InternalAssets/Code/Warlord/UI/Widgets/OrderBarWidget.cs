@@ -8,22 +8,24 @@ using Warlord.Gameplay.Players;
 namespace Warlord.UI.Widgets
 {
     /// <summary>
-    /// Приказы армии и построения (ГДД §6, §7). Дублирует клавиши 1/2/3 и Q/W/E,
+    /// Приказы армии и построения (ГДД §6, §7). Дублирует клавиши 1/2/3/4 и Z/X/C/V,
     /// но не заменяет их: ввод с клавиатуры идёт своим путём через HeroCommandRouter.
     /// </summary>
     public sealed class OrderBarWidget : HudWidget
     {
         [Header("Приказы")]
-        [Tooltip("Ровно три кнопки в порядке ArmyOrderType: Стоять, За мной, В атаку.")]
-        [SerializeField] private HotkeyButtonView[] orderButtons = new HotkeyButtonView[3];
-        [SerializeField] private Sprite[] orderIcons = new Sprite[3];
+        [Tooltip("Ровно четыре кнопки в порядке ArmyOrderType: Стоять, За мной, В атаку, Защита.")]
+        [SerializeField] private HotkeyButtonView[] orderButtons = new HotkeyButtonView[4];
+        [SerializeField] private Sprite[] orderIcons = new Sprite[4];
 
         [Header("Построения")]
         [SerializeField] private RectTransform formationContainer;
         [SerializeField] private HotkeyButtonView formationTemplate;
 
-        private static readonly string[] OrderHotkeys = { "1", "2", "3" };
-        private static readonly string[] FormationHotkeys = { "Q", "W", "E", "R" };
+        private static readonly string[] OrderHotkeys = { "1", "2", "3", "4" };
+        // W занята бегом вперёд, поэтому построения переехали с Q/W/E на Z/X/C,
+        // а четвёртая клавиша досталась пользовательскому пресету.
+        private static readonly string[] FormationHotkeys = { "Z", "X", "C", "V" };
 
         private readonly List<HotkeyButtonView> _formationButtons = new(4);
         private bool _built;

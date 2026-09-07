@@ -13,6 +13,9 @@ namespace Warlord.Configs
         [Tooltip("Радиус ответа при приказе Стоять.")]
         [Min(0f)] public float defendRadius = 6f;
 
+        [Tooltip("Сколько секунд без целей рядом с полководцем держится приказ В атаку, прежде чем армия сама вернётся в строй.")]
+        [Min(0f)] public float attackRegroupDelay = 2f;
+
         [Tooltip("Насколько далеко юнит может отойти от своего слота, преследуя цель.")]
         [Min(0f)] public float leashDistance = 4f;
 

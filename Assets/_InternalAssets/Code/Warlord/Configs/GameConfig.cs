@@ -19,7 +19,6 @@ namespace Warlord.Configs
         [Header("Правила")]
         [SerializeField] private GameModeConfig gameMode;
         [SerializeField] private NetworkConfig network;
-        [SerializeField] private MapConfig map;
 
         [Header("Полководец и армия")]
         [SerializeField] private HeroConfig hero;
@@ -48,7 +47,6 @@ namespace Warlord.Configs
 
         public GameModeConfig GameMode => gameMode;
         public NetworkConfig Network => network;
-        public MapConfig Map => map;
         public HeroConfig Hero => hero;
         public UnitRosterConfig Roster => roster;
         public DamageMatrixConfig DamageMatrix => damageMatrix;
@@ -64,7 +62,6 @@ namespace Warlord.Configs
         {
             if (gameMode == null) { error = "GameConfig: не задан GameModeConfig"; return false; }
             if (network == null) { error = "GameConfig: не задан NetworkConfig"; return false; }
-            if (map == null) { error = "GameConfig: не задан MapConfig"; return false; }
             if (hero == null) { error = "GameConfig: не задан HeroConfig"; return false; }
             if (roster == null || roster.Count == 0) { error = "GameConfig: пустой UnitRosterConfig"; return false; }
             if (command == null) { error = "GameConfig: не задан CommandConfig"; return false; }

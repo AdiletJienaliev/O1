@@ -17,6 +17,10 @@ namespace Warlord.Domain.Combat
             RawDamage = rawDamage;
         }
 
-        public bool IsValid => Target != null && RawDamage > 0;
+        /// <summary>Цель ещё существует (объект не уничтожен) и урон осмысленный.</summary>
+        public bool IsValid => Target.Exists() && RawDamage > 0;
+
+        /// <summary>Атакующий, если он ещё существует. Заявка без него остаётся в силе — урон анонимный.</summary>
+        public ICombatTarget LivingAttacker => Attacker.OrNull();
     }
 }

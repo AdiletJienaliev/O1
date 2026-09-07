@@ -28,12 +28,15 @@ namespace Warlord.EditorTools.UI
             widgets.Add(BuildHeroCard(screen));
             widgets.Add(BuildSpawnQueue(screen, templates));
             widgets.Add(BuildUnitShop(screen, templates));
-            widgets.Add(BuildOrderBar(screen, templates, out Button upgradeToggle));
+            widgets.Add(BuildOrderBar(screen, templates, out Button upgradeToggle, out Button presetToggle));
             widgets.Add(BuildToast(screen));
             widgets.Add(BuildCrosshair(screen));
 
             UpgradeWidget upgrades = BuildUpgradePanel(screen, templates, out GameObject upgradePanel, out Button upgradeClose);
             widgets.Add(upgrades);
+
+            ArmyPresetWidget preset = BuildArmyPresetPanel(screen, templates, out GameObject presetPanel, out Button presetClose);
+            widgets.Add(preset);
 
             HudScreen hud = screen.gameObject.AddComponent<HudScreen>();
 
@@ -43,7 +46,10 @@ namespace Warlord.EditorTools.UI
                     .Refs("widgets", widgets.ToArray())
                     .Ref("upgradePanel", upgradePanel)
                     .Ref("upgradeToggleButton", upgradeToggle)
-                    .Ref("upgradeCloseButton", upgradeClose);
+                    .Ref("upgradeCloseButton", upgradeClose)
+                    .Ref("presetPanel", presetPanel)
+                    .Ref("presetToggleButton", presetToggle)
+                    .Ref("presetCloseButton", presetClose);
             }
 
             return hud;
@@ -367,26 +373,39 @@ namespace Warlord.EditorTools.UI
 
         #region Приказы и построения
 
-        private static OrderBarWidget BuildOrderBar(RectTransform screen, Templates templates, out Button upgradeToggle)
+        private static OrderBarWidget BuildOrderBar(
+            RectTransform screen,
+            Templates templates,
+            out Button upgradeToggle,
+            out Button presetToggle)
         {
             RectTransform bar = Ui.Node("OrderBar", screen).At(Ui.BottomRight, new Vector2(-26f, 26f), new Vector2(380f, 260f)).Pivot(Ui.BottomRight);
 
-            RectTransform orders = Ui.Node("Orders", bar).At(Ui.Bottom, new Vector2(0f, 0f), new Vector2(370f, 112f));
-            orders.Row(14f, TextAnchor.MiddleCenter);
+            RectTransform orders = Ui.Node("Orders", bar).At(Ui.Bottom, new Vector2(0f, 0f), new Vector2(376f, 88f));
+            orders.Row(10f, TextAnchor.MiddleCenter);
 
-            HotkeyButtonView[] orderButtons = new HotkeyButtonView[3];
+            // Приказов стало четыре вместе с «Защитой» — кнопки поуже, ряд как у построений.
+            HotkeyButtonView[] orderButtons = new HotkeyButtonView[4];
             for (int i = 0; i < orderButtons.Length; i++)
+            {
                 orderButtons[i] = Spawn<HotkeyButtonView>(templates.OrderButton, orders, "Order_" + i);
+                orderButtons[i].GetComponent<RectTransform>().sizeDelta = new Vector2(84f, 84f);
+            }
 
-            RectTransform formations = Ui.Node("Formations", bar).At(Ui.Bottom, new Vector2(0f, 124f), new Vector2(370f, 92f));
-            formations.Row(12f, TextAnchor.MiddleCenter);
+            RectTransform formations = Ui.Node("Formations", bar).At(Ui.Bottom, new Vector2(0f, 100f), new Vector2(376f, 88f));
+            formations.Row(10f, TextAnchor.MiddleCenter);
 
             HotkeyButtonView formationTemplate = Spawn<HotkeyButtonView>(templates.OrderButton, formations, "FormationTemplate");
-            formationTemplate.GetComponent<RectTransform>().sizeDelta = new Vector2(92f, 92f);
+
+            // Построений теперь четыре вместе с пользовательским строем — кнопки поуже.
+            formationTemplate.GetComponent<RectTransform>().sizeDelta = new Vector2(84f, 84f);
             formationTemplate.gameObject.SetActive(false);
 
             upgradeToggle = MenuButton("UpgradeToggle", bar, "ПРОКАЧКА  ⇥", Kit.ButtonNavy);
-            upgradeToggle.GetComponent<RectTransform>().At(Ui.Bottom, new Vector2(0f, 228f), new Vector2(280f, 62f));
+            upgradeToggle.GetComponent<RectTransform>().At(Ui.Bottom, new Vector2(0f, 204f), new Vector2(280f, 62f));
+
+            presetToggle = MenuButton("PresetToggle", bar, "РАССТАНОВКА  B", Kit.ButtonNavy);
+            presetToggle.GetComponent<RectTransform>().At(Ui.Bottom, new Vector2(0f, 272f), new Vector2(280f, 62f));
 
             OrderBarWidget widget = bar.gameObject.AddComponent<OrderBarWidget>();
 
@@ -444,6 +463,112 @@ namespace Warlord.EditorTools.UI
                     .Ref("branchTemplate", branchTemplate)
                     .Ref("xpLabel", xp)
                     .Refs("branchIcons", Kit.BranchIcons);
+            }
+
+            return widget;
+        }
+
+        /// <summary>
+        /// Панель расстановки армии: слева типы юнитов, справа поле строя. Игрок выбирает тип
+        /// и проводит мышью по клеткам — получается своё построение наравне с линией и клином.
+        /// Передняя шеренга сверху: так поле читается как вид на строй со стороны противника.
+        /// </summary>
+        private static ArmyPresetWidget BuildArmyPresetPanel(
+            RectTransform screen,
+            Templates templates,
+            out GameObject panelObject,
+            out Button close)
+        {
+            const int Columns = 11;
+            const int Rows = 6;
+
+            RectTransform overlay = Ui.Node("PresetOverlay", screen).Stretch();
+            overlay.Sprite(null, new Color(0.04f, 0.05f, 0.08f, 0.7f)).raycastTarget = true;
+
+            RectTransform panel = Ui.Node("Panel", overlay).At(Ui.Center, Vector2.zero, new Vector2(1120f, 780f));
+            panel.Sprite(Kit.PopupBody, Color.white);
+
+            RectTransform header = Ui.Node("Header", panel).At(Ui.Top, new Vector2(0f, 20f), new Vector2(520f, 84f));
+            header.Sprite(Kit.PopupHeader, Color.white);
+            Ui.Label("Text", header, "РАССТАНОВКА АРМИИ", 30f, Color.white, TextAlignmentOptions.Center, Kit.FontTitle)
+                .rectTransform.Stretch();
+
+            RectTransform palette = Ui.Node("Palette", panel)
+                .At(Ui.TopLeft, new Vector2(40f, -110f), new Vector2(210f, 560f))
+                .Pivot(Ui.TopLeft);
+            palette.Column(10f, TextAnchor.UpperCenter);
+
+            HotkeyButtonView paletteTemplate = Spawn<HotkeyButtonView>(templates.OrderButton, palette, "PaletteTemplate");
+            paletteTemplate.GetComponent<RectTransform>().sizeDelta = new Vector2(200f, 88f);
+            paletteTemplate.gameObject.SetActive(false);
+
+            RectTransform field = Ui.Node("Field", panel)
+                .At(Ui.TopLeft, new Vector2(280f, -110f), new Vector2(800f, 560f))
+                .Pivot(Ui.TopLeft);
+
+            Ui.Label("Front", field, "фронт", 18f, Ui.InkMuted, TextAlignmentOptions.Center)
+                .rectTransform.At(Ui.Top, new Vector2(0f, 0f), new Vector2(200f, 24f));
+
+            // Слой колец радиуса создаётся ДО сетки: порядок в иерархии здесь и есть
+            // порядок отрисовки, а кольца обязаны лежать под клетками, а не поверх иконок.
+            RectTransform ranges = Ui.Node("Ranges", field)
+                .At(Ui.Top, new Vector2(0f, -30f), new Vector2(800f, 470f))
+                .Pivot(Ui.Top);
+
+            // Радиус лучника шире всего поля расстановки: без маски его кольцо накрыло бы
+            // палитру и кнопки. Обрезанная по краю дуга читается ничуть не хуже.
+            ranges.gameObject.AddComponent<RectMask2D>();
+
+            Image rangeTemplate = Ui.Icon("RangeTemplate", ranges, Kit.CircleSmall, new Vector2(120f, 120f));
+            rangeTemplate.gameObject.SetActive(false);
+
+            RectTransform grid = Ui.Node("Grid", field)
+                .At(Ui.Top, new Vector2(0f, -30f), new Vector2(800f, 470f))
+                .Pivot(Ui.Top);
+            grid.Grid(new Vector2(62f, 62f), new Vector2(6f, 6f), Columns);
+
+            ArmyPresetCellView cellTemplate = Spawn<ArmyPresetCellView>(templates.ArmyPresetCell, grid, "CellTemplate");
+            cellTemplate.gameObject.SetActive(false);
+
+            TextMeshProUGUI hint = Ui.Label(
+                "Hint",
+                panel,
+                "Выберите тип слева и проведите мышью по полю",
+                20f,
+                Ui.InkMuted,
+                TextAlignmentOptions.Center);
+            hint.rectTransform.At(Ui.Bottom, new Vector2(0f, 108f), new Vector2(900f, 28f));
+
+            Button apply = MenuButton("Apply", panel, "ПРИМЕНИТЬ", Kit.ButtonGreen);
+            apply.GetComponent<RectTransform>().At(Ui.Bottom, new Vector2(-150f, 32f), new Vector2(280f, 62f));
+
+            Button clear = MenuButton("Clear", panel, "ОЧИСТИТЬ", Kit.ButtonGray);
+            clear.GetComponent<RectTransform>().At(Ui.Bottom, new Vector2(150f, 32f), new Vector2(280f, 62f));
+
+            close = Ui.Button("Close", panel, Kit.ButtonCircle, Color.white, out _);
+            close.GetComponent<RectTransform>().At(Ui.TopRight, new Vector2(-14f, -14f), new Vector2(56f, 56f));
+            Ui.Icon("Icon", close.transform, Kit.IconClose, new Vector2(24f, 24f))
+                .rectTransform.At(Ui.Center, Vector2.zero, new Vector2(24f, 24f));
+
+            overlay.gameObject.SetActive(false);
+            panelObject = overlay.gameObject;
+
+            ArmyPresetWidget widget = panel.gameObject.AddComponent<ArmyPresetWidget>();
+
+            using (Bind bind = new(widget))
+            {
+                bind.Ref("paletteContainer", palette)
+                    .Ref("paletteTemplate", paletteTemplate)
+                    .Ref("gridContainer", grid)
+                    .Ref("cellTemplate", cellTemplate)
+                    .Ref("rangeContainer", ranges)
+                    .Ref("rangeTemplate", rangeTemplate)
+                    .Ref("applyButton", apply)
+                    .Ref("clearButton", clear)
+                    .Ref("hintLabel", hint)
+                    .Ref("fallbackIcon", Kit.ItemSword)
+                    .Int("columns", Columns)
+                    .Int("rows", Rows);
             }
 
             return widget;

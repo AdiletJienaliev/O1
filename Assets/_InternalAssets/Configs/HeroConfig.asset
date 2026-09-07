@@ -19,9 +19,11 @@ MonoBehaviour:
   moveSpeed: 6
   sprintSpeed: 8.5
   jumpHeight: 1.6
+  moveAcceleration: 45
+  moveDeceleration: 60
   gravityScale: 3
   terminalVelocity: 40
-  rotationMode: 1
+  rotationMode: 0
   turnSpeed: 900
   attackDamage: 35
   attackCooldown: 0.8

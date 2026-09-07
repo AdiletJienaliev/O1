@@ -18,6 +18,12 @@ namespace Warlord.Configs
         [Min(0f)] public float sprintSpeed = 8.5f;
         [Min(0f)] public float jumpHeight = 1.6f;
 
+        [Tooltip("Набор скорости, м/с². Клавиатура даёт 0 или 1, и без разгона старт выглядит рывком. 0 — мгновенно.")]
+        [Min(0f)] public float moveAcceleration = 45f;
+
+        [Tooltip("Торможение при отпущенных клавишах, м/с². Больше — резче остановка.")]
+        [Min(0f)] public float moveDeceleration = 60f;
+
         [Tooltip("Множитель гравитации для более резкого прыжка.")]
         [Min(0.1f)] public float gravityScale = 3f;
 

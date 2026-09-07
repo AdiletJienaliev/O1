@@ -44,6 +44,11 @@ namespace Warlord.Gameplay.Units
                 if (behaviour == null)
                     continue;
 
+                // Щит держится только под приказом «Защита»: опускаем его здесь, один раз
+                // на смене приказа, а не в каждом из остальных поведений — забыть про это
+                // в новом поведении было бы слишком легко, и армия ушла бы в атаку с блоком.
+                bool defending = army.Order.Type == ArmyOrderType.Defend;
+
                 _buffer.Clear();
                 _buffer.AddRange(army.Units);
 
@@ -54,6 +59,10 @@ namespace Warlord.Gameplay.Units
                         continue;
 
                     unit.ServerTickTimers(deltaTime);
+
+                    if (!defending)
+                        unit.ServerSetShield(false);
+
                     behaviour.Tick(unit, army, _context, deltaTime);
                 }
             }

@@ -58,7 +58,6 @@ namespace Warlord.EditorTools
 
             List<string> report = new();
 
-            RepairMap(game, report);
             RepairUnitPrefabs(report);
 
             AssetDatabase.SaveAssets();
@@ -126,8 +125,8 @@ namespace Warlord.EditorTools
             }
         }
 
-        [MenuItem("Warlord/Настройка/4. Настроить предсказание полководца", priority = 3)]
-        public static void ConfigureHeroPrediction()
+        [MenuItem("Warlord/Настройка/4. Настроить движение полководца", priority = 3)]
+        public static void ConfigureHeroMovement()
         {
             GameObject contents = PrefabUtility.LoadPrefabContents(HeroPrefabPath);
 
@@ -148,13 +147,13 @@ namespace Warlord.EditorTools
                 return;
             }
 
-            EnablePrediction(networkObject, contents, report);
-            RemoveNetworkTransform(contents, report);
+            DisablePrediction(networkObject, contents, report);
+            ConfigureNetworkTransform(contents, report);
 
             if (report.Count == 0)
             {
                 PrefabUtility.UnloadPrefabContents(contents);
-                Debug.Log("Warlord: предсказание полководца уже настроено.");
+                Debug.Log("Warlord: движение полководца уже настроено.");
                 return;
             }
 
@@ -167,22 +166,25 @@ namespace Warlord.EditorTools
         }
 
         /// <summary>
-        /// HeroController построен на Replicate/Reconcile, но у NetworkObject предсказание
-        /// было выключено: сглаживания не было, и каждая реконсиляция дёргала трансформ.
+        /// Предсказание выключаем осознанно. HeroController больше не переигрывает такты:
+        /// владелец двигает тело локально, а позиция уезжает NetworkTransform. Включённое
+        /// предсказание рядом с NetworkTransform означало двух хозяев одного трансформа —
+        /// именно от этого полководец и дёргался при каждой реконсиляции.
         /// </summary>
-        private static void EnablePrediction(NetworkObject networkObject, GameObject root, List<string> report)
+        private static void DisablePrediction(NetworkObject networkObject, GameObject root, List<string> report)
         {
             SerializedObject serialized = new(networkObject);
 
             SerializedProperty enabled = serialized.FindProperty("_enablePrediction");
             SerializedProperty graphical = serialized.FindProperty("_graphicalObject");
 
-            if (enabled != null && !enabled.boolValue)
+            if (enabled != null && enabled.boolValue)
             {
-                enabled.boolValue = true;
-                report.Add("NetworkObject.EnablePrediction = true");
+                enabled.boolValue = false;
+                report.Add("NetworkObject.EnablePrediction = false");
             }
 
+            // Графический объект нужен и без предсказания: за ним ездит орбитальная камера.
             if (graphical != null && graphical.objectReferenceValue == null)
             {
                 Transform visual = FindGraphicalRoot(root);
@@ -194,7 +196,7 @@ namespace Warlord.EditorTools
                 }
                 else
                 {
-                    report.Add("графический объект не найден — назначьте вручную для сглаживания");
+                    report.Add("графический объект не найден — назначьте вручную, за ним следит камера");
                 }
             }
 
@@ -202,22 +204,55 @@ namespace Warlord.EditorTools
         }
 
         /// <summary>
-        /// NetworkTransform на предсказанном полководце дублирует синхронизацию и с
-        /// включёнными clientAuthoritative + sendToOwner тянет трансформ владельца назад,
-        /// перебивая CharacterController. Состояния и так расходятся через state forwarding.
+        /// NetworkTransform — единственный канал позиции полководца, поэтому он обязан быть
+        /// client authoritative: тело ведёт владелец. Масштаб не синхронизируем (он не меняется),
+        /// а телепорт включаем, иначе респавн наблюдатели увидят как плавный пролёт через карту.
         /// </summary>
-        private static void RemoveNetworkTransform(GameObject root, List<string> report)
+        private static void ConfigureNetworkTransform(GameObject root, List<string> report)
         {
             NetworkTransform transform = root.GetComponent<NetworkTransform>();
 
             if (transform == null)
-                return;
+            {
+                transform = root.AddComponent<NetworkTransform>();
+                report.Add("добавлен NetworkTransform — им едет позиция полководца");
+            }
 
-            Object.DestroyImmediate(transform, true);
-            report.Add("удалён NetworkTransform — он дрался с предсказанием за трансформ");
+            SerializedObject serialized = new(transform);
+
+            SetBool(serialized, "_clientAuthoritative", true, "clientAuthoritative = true", report);
+            SetBool(serialized, "_synchronizePosition", true, "synchronizePosition = true", report);
+            SetBool(serialized, "_synchronizeRotation", true, "synchronizeRotation = true", report);
+            SetBool(serialized, "_synchronizeScale", false, "synchronizeScale = false", report);
+            SetBool(serialized, "_enableTeleport", true, "enableTeleport = true", report);
+            SetFloat(serialized, "_teleportThreshold", 2f, "teleportThreshold = 2", report);
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>Первый потомок с рендерером: его сглаживает предсказание, за ним же едет камера.</summary>
+        private static void SetBool(SerializedObject serialized, string path, bool value, string note, List<string> report)
+        {
+            SerializedProperty property = serialized.FindProperty(path);
+
+            if (property == null || property.boolValue == value)
+                return;
+
+            property.boolValue = value;
+            report.Add("NetworkTransform." + note);
+        }
+
+        private static void SetFloat(SerializedObject serialized, string path, float value, string note, List<string> report)
+        {
+            SerializedProperty property = serialized.FindProperty(path);
+
+            if (property == null || Mathf.Approximately(property.floatValue, value))
+                return;
+
+            property.floatValue = value;
+            report.Add("NetworkTransform." + note);
+        }
+
+        /// <summary>Первый потомок с рендерером: за ним едет камера.</summary>
         private static Transform FindGraphicalRoot(GameObject root)
         {
             Renderer renderer = root.GetComponentInChildren<Renderer>(true);
@@ -259,26 +294,6 @@ namespace Warlord.EditorTools
             PrefabUtility.UnloadPrefabContents(contents);
 
             Debug.Log("Warlord: камера внутри Player.prefab выключена — снимает сцену только орбитальная.", prefab);
-        }
-
-        private static void RepairMap(GameConfig game, List<string> report)
-        {
-            if (game.Map != null)
-                return;
-
-            MapConfig map = LoadSingle<MapConfig>(silent: true);
-
-            if (map == null)
-            {
-                report.Add("MapConfig в проекте не найден — карту назначьте вручную");
-                return;
-            }
-
-            using (Bind bind = new(game))
-                bind.Ref("map", map);
-
-            EditorUtility.SetDirty(game);
-            report.Add("GameConfig.map = " + map.name);
         }
 
         private static void RepairUnitPrefabs(List<string> report)

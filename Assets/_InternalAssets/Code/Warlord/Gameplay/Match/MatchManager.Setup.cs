@@ -53,6 +53,7 @@ namespace Warlord.Gameplay.Match
             systems.Register(_capture);
             systems.Register(new EconomySystem(ServerContext));
             systems.Register(new SpawnQueueSystem(ServerContext));
+            systems.Register(new ArmyEngagementSystem(ServerContext));
             systems.Register(new ArmyFormationSystem(ServerContext));
             systems.Register(new UnitAiSystem(ServerContext, UnitOrderBehaviourCatalog.CreateDefault()));
             systems.Register(ServerContext.Projectiles);

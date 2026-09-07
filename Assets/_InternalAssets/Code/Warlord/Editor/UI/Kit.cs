@@ -144,7 +144,7 @@ namespace Warlord.EditorTools.UI
         };
 
         /// <summary>Иконки приказов в порядке ArmyOrderType.</summary>
-        public static Sprite[] OrderIcons => new[] { IconDefense, IconFriends, IconSword };
+        public static Sprite[] OrderIcons => new[] { IconDefense, IconFriends, IconSword, ItemShield };
 
         #endregion
 

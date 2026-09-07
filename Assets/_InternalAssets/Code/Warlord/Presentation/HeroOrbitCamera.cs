@@ -76,6 +76,7 @@ namespace Warlord.Presentation
         [Tooltip("Пока клавиша зажата, курсор свободен: можно ткнуть в HUD, камера стоит.")]
         [SerializeField] private KeyCode freeCursorKey = KeyCode.LeftAlt;
 
+        private Camera _camera;
         private Transform _target;
         private Vector3 _pivot;
         private Vector3 _pivotVelocity;
@@ -87,14 +88,26 @@ namespace Warlord.Presentation
         private float _occludedDistance;
         private bool _hasPivot;
 
+        /// <summary>
+        /// Единственная боевая камера сцены. Тот же приём, что и у HeroController.Local:
+        /// ввод полководца обязан брать азимут именно у неё, а не у первой попавшейся
+        /// камеры — иначе WASD считается не от обзора и управление разъезжается.
+        /// </summary>
+        public static HeroOrbitCamera Current { get; private set; }
+
         /// <summary>Азимут камеры, град. Ввод полководца строит по нему направление WASD.</summary>
         public float Yaw => _yaw;
+
+        /// <summary>Сама камера: по ней ввод целится в землю для приказов.</summary>
+        public Camera Camera => _camera;
 
         /// <summary>Захвачен ли сейчас курсор. Прицел рисуется только в этом состоянии.</summary>
         public bool CursorLocked { get; private set; }
 
         private void Awake()
         {
+            _camera = GetComponent<Camera>();
+
             _pitch = Mathf.Clamp(startPitch, minPitch, maxPitch);
             _yaw = transform.eulerAngles.y;
 
@@ -103,10 +116,17 @@ namespace Warlord.Presentation
             _occludedDistance = _desiredDistance;
         }
 
-        private void OnEnable() => ApplyCursor(false);
+        private void OnEnable()
+        {
+            Current = this;
+            ApplyCursor(false);
+        }
 
         private void OnDisable()
         {
+            if (Current == this)
+                Current = null;
+
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             CursorLocked = false;

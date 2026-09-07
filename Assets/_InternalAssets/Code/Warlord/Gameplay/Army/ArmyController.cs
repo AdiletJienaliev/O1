@@ -18,6 +18,7 @@ namespace Warlord.Gameplay.Army
         private readonly List<UnitEntity> _units = new(32);
         private readonly List<IFormationMember> _members = new(32);
         private readonly FormationSolver _solver = new();
+        private readonly ArmyPreset _preset = new();
         private readonly CommandConfig _command;
         private readonly FormationSetConfig _formations;
 
@@ -43,6 +44,45 @@ namespace Warlord.Gameplay.Army
         public int AliveCount => _units.Count;
 
         public FormationConfig Formation => _formations != null ? _formations.Get(FormationIndex) : null;
+
+        /// <summary>Пользовательская расстановка. Пустая, пока игрок ничего не задал.</summary>
+        public ArmyPreset Preset => _preset;
+
+        /// <summary>
+        /// Принять пресет от владельца. Валидацию делает вызывающий: сюда данные
+        /// доходят уже разобранными, а строй пересобирается со следующего такта.
+        /// </summary>
+        public void ApplyPreset(ArmyPreset source)
+        {
+            _preset.Clear();
+
+            if (source != null)
+            {
+                for (int i = 0; i < source.Slots.Count; i++)
+                    _preset.Add(source.Slots[i]);
+            }
+
+            _formationDirty = true;
+        }
+
+        /// <summary>
+        /// Есть ли вокруг полководца кого бить. Считает <see cref="ArmyEngagementSystem"/>
+        /// один раз на всю армию — юниты не ищут врагов сами, иначе передний край
+        /// утаскивал бы за собой весь строй (ГДД §6).
+        /// </summary>
+        public bool IsEngaged { get; private set; }
+
+        /// <summary>Центр зоны боя: позиция полководца, а при его смерти — точка приказа.</summary>
+        public Vector3 EngagementCenter { get; private set; }
+
+        public float EngagementRadius { get; private set; }
+
+        public void SetEngagement(bool engaged, Vector3 center, float radius)
+        {
+            IsEngaged = engaged;
+            EngagementCenter = center;
+            EngagementRadius = radius;
+        }
 
         public void Add(UnitEntity unit)
         {
@@ -133,7 +173,12 @@ namespace Warlord.Gameplay.Army
                     _members.Add(unit);
             }
 
-            _solver.Solve(formation, anchor, yaw, _members);
+            // Пресет — то же построение с точки зрения сети и HUD, но форму задаёт игрок,
+            // а не ассет, поэтому раскладку считает отдельный проход решателя.
+            if (formation is PresetFormationConfig && !_preset.IsEmpty)
+                _solver.SolvePreset(_preset, formation.slotSpacing, anchor, yaw, _members);
+            else
+                _solver.Solve(formation, anchor, yaw, _members);
         }
 
         /// <summary>Уничтожение армии при выбывании игрока (ГДД §10.3). Возвращает копию списка для деспавна.</summary>

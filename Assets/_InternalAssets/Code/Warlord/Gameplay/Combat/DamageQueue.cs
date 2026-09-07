@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Warlord.Domain.Combat;
 
 namespace Warlord.Gameplay.Combat
@@ -16,7 +16,7 @@ namespace Warlord.Gameplay.Combat
 
         public void Enqueue(ICombatTarget attacker, ICombatTarget target, int rawDamage)
         {
-            if (target == null || rawDamage <= 0 || !target.IsAlive)
+            if (!target.IsAliveTarget() || rawDamage <= 0)
                 return;
 
             _pending.Add(new DamageEvent(attacker, target, rawDamage));

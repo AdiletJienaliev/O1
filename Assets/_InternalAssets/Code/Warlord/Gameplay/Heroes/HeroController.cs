@@ -1,8 +1,6 @@
+using FishNet.Connection;
 using FishNet.Object;
-using FishNet.Object.Prediction;
 using FishNet.Object.Synchronizing;
-using FishNet.Transporting;
-using FishNet.Utility.Template;
 using UnityEngine;
 using Warlord.Configs;
 using Warlord.Core;
@@ -10,16 +8,24 @@ using Warlord.Domain.Combat;
 using Warlord.Gameplay.Army;
 using Warlord.Gameplay.Heroes.Input;
 using Warlord.Gameplay.Match;
+using Warlord.Presentation.Animation;
 
 namespace Warlord.Gameplay.Heroes
 {
     /// <summary>
-    /// Полководец (ГДД §8). Движение предсказывается на клиенте и выправляется сервером
-    /// (FishNet Prediction v2), поэтому управление отзывчиво; всё остальное — здоровье,
-    /// смерть, респавн — только серверное.
+    /// Полководец (ГДД §8). Движение целиком локальное: тело двигает только владелец,
+    /// у себя, в Update — а остальным готовая позиция уезжает через NetworkTransform
+    /// (client authoritative). Предсказания с переигрыванием тактов здесь больше нет:
+    /// оно дралось с NetworkTransform за один и тот же трансформ, и каждая реконсиляция
+    /// возвращала тело назад — отсюда и дёрганье.
+    ///
+    /// Всё, что влияет на исход, по-прежнему серверное: здоровье, смерть, респавн, урон.
+    /// Ценой отказа от предсказания стал контроль сервера над позицией полководца —
+    /// клиент может её подделать. Для боя это терпимо: удар всё равно валидируется
+    /// сервером с лаг-компенсацией.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public sealed class HeroController : TickNetworkBehaviour, ICombatTarget, IArmyLeader
+    public sealed class HeroController : NetworkBehaviour, ICombatTarget, IArmyLeader, IHealthSource
     {
         [Header("Компоненты")]
         [SerializeField] private CharacterController characterController;
@@ -36,16 +42,20 @@ namespace Warlord.Gameplay.Heroes
         private IHeroInputSource _input;
         private HeroConfig _config;
         private IMatchContext _context;
+        private HeroMotor _motor;
+        private CharacterAnimationDriver _animation;
 
-        private float _verticalVelocity;
         private float _respawnTimer;
         private float _timeSinceDamage;
         private float _spawnProtectionTimer;
-        private HeroReplicateData _lastTickedInput;
 
         public int Slot => _slot.Value;
         public bool IsSpectator => _spectator.Value;
         public int Health => _health.Value;
+
+        /// <summary>Максимум здоровья. Нужен полоске над головой — она есть и на клиентах.</summary>
+        public int MaxHealth => _config != null ? _config.maxHealth : 0;
+
         public float RespawnTimeRemaining => _respawnTimer;
         public bool IsInvulnerable => _spawnProtectionTimer > 0f;
 
@@ -77,14 +87,27 @@ namespace Warlord.Gameplay.Heroes
             _input = inputSource as IHeroInputSource;
             _input ??= GetComponent<IHeroInputSource>();
 
-            SetTickCallbacks(TickCallback.Tick | TickCallback.PostTick);
+            _motor = new HeroMotor(characterController, transform);
+            _animation = new CharacterAnimationDriver(gameObject, transform);
+        }
+
+        private void OnEnable()
+        {
+            if (combat != null)
+                combat.AttackPerformed += OnAttackPerformed;
+        }
+
+        private void OnDisable()
+        {
+            if (combat != null)
+                combat.AttackPerformed -= OnAttackPerformed;
         }
 
         /// <summary>Инициализация на сервере сразу после спавна.</summary>
         public void ServerInitialize(IMatchContext context, int slot)
         {
             _context = context;
-            _config = context.Config.Hero;
+            ApplyConfig(context.Config.Hero);
             _slot.Value = (byte)slot;
             _health.Value = _config.maxHealth;
             _spectator.Value = false;
@@ -95,8 +118,8 @@ namespace Warlord.Gameplay.Heroes
             base.OnStartNetwork();
 
             MatchManager manager = MatchManager.Instance;
-            if (manager != null)
-                _config = manager.Config.Hero;
+            if (manager != null && _config == null)
+                ApplyConfig(manager.Config.Hero);
         }
 
         /// <summary>
@@ -136,144 +159,81 @@ namespace Warlord.Gameplay.Heroes
             _context?.LagCompensation.Untrack(this);
         }
 
-        protected override void TimeManager_OnTick() => PerformReplicate(BuildInput());
-
-        protected override void TimeManager_OnPostTick() => CreateReconcile();
-
-        public override void CreateReconcile()
+        private void Update()
         {
-            PerformReconcile(new HeroReconcileData(transform.position, transform.eulerAngles.y, _verticalVelocity, IsAlive));
+            float delta = Time.deltaTime;
+
+            // Тело двигает только владелец. У всех остальных — и на сервере тоже —
+            // трансформ приходит по сети, и трогать его здесь нельзя.
+            if (IsOwner)
+                TickMovement(delta);
+
+            TickAnimation(delta);
         }
 
-        private HeroReplicateData BuildInput()
+        private void TickMovement(float delta)
         {
-            // Данные ввода строит только владелец объекта; сервер получит их по сети.
-            if (!IsOwner || _input == null || !IsAlive)
-                return default;
-
-            return new HeroReplicateData(_input.Move, _input.AimYaw, _input.Sprint, _input.ConsumeJump());
-        }
-
-        [Replicate]
-        private void PerformReplicate(HeroReplicateData data, ReplicateState state = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
-        {
-            float delta = (float)TimeManager.TickDelta;
+            // Прыжок считывается всегда: иначе нажатие, пойманное во время смерти
+            // или в открытом меню, выстрелило бы при возвращении управления.
+            bool jump = _input != null && _input.ConsumeJump();
 
             if (!IsAlive)
             {
-                // Мёртвый полководец не двигается, но CharacterController всё равно надо шевелить,
-                // иначе его коллайдер зависает в устаревшем состоянии.
-                characterController.Move(new Vector3(0f, -1f, 0f) * delta);
+                _motor.Fall(delta);
                 return;
             }
 
-            // Наблюдатели предсказывают чужой ввод на такт вперёд: это скрывает
-            // сетевую задержку без заметного риска рассинхрона.
-            if (!IsServerStarted && !IsOwner)
+            // Без источника ввода мотор всё равно надо тикать: гравитация и торможение
+            // должны продолжаться, иначе полководец замирает в воздухе.
+            if (_input == null)
             {
-                if (state.ContainsTicked())
-                {
-                    _lastTickedInput.Dispose();
-                    _lastTickedInput = data;
-                }
-                else if (state.IsFuture() && data.GetTick() - _lastTickedInput.GetTick() <= 1)
-                {
-                    data = _lastTickedInput;
-                    data.Jump = false;
-                }
-            }
-
-            ApplyMovement(in data, delta);
-        }
-
-        private void ApplyMovement(in HeroReplicateData data, float delta)
-        {
-            HeroConfig config = _config;
-            if (config == null)
+                _motor.Move(Vector2.zero, YawDegrees, false, false, delta);
                 return;
-
-            _verticalVelocity += Physics.gravity.y * config.gravityScale * delta;
-            if (_verticalVelocity < -config.terminalVelocity)
-                _verticalVelocity = -config.terminalVelocity;
-
-            if (characterController.isGrounded && _verticalVelocity < 0f)
-                _verticalVelocity = -2f;
-
-            if (data.Jump && characterController.isGrounded)
-            {
-                // v = sqrt(2 * g * h) — прыжок задаётся высотой, а не силой: так проще балансировать.
-                float gravity = Mathf.Abs(Physics.gravity.y) * config.gravityScale;
-                _verticalVelocity = Mathf.Sqrt(2f * gravity * config.jumpHeight);
             }
 
-            // Ввод нормализуем только когда он длиннее единицы: по диагонали скорость
-            // не должна расти, но короткие отклонения стика обязаны сохраняться.
-            Vector2 move = data.Move;
-            float amount = move.magnitude;
-
-            if (amount > 1f)
-            {
-                move /= amount;
-                amount = 1f;
-            }
-
-            // Оси камеры: W — от игрока вглубь экрана, S — на игрока, A и D — строго вбок.
-            Quaternion cameraYaw = Quaternion.Euler(0f, data.AimYaw, 0f);
-            Vector3 direction = cameraYaw * new Vector3(move.x, 0f, move.y);
-
-            float speed = data.Sprint ? config.sprintSpeed : config.moveSpeed;
-
-            Vector3 motion = direction * speed;
-            motion.y = _verticalVelocity;
-            characterController.Move(motion * delta);
-
-            ApplyRotation(config, direction, amount, data.AimYaw, delta);
+            _motor.Move(_input.Move, _input.AimYaw, _input.Sprint, jump, delta);
         }
 
         /// <summary>
-        /// Доворот тела. Отделён от перемещения намеренно: направление шага и направление
-        /// взгляда — разные вещи, и режим их связи задаётся конфигом (ГДД §8).
+        /// Анимация. У владельца скорость известна точно, остальным её приходится
+        /// восстанавливать из смещения трансформа — там его двигает NetworkTransform.
         /// </summary>
-        private void ApplyRotation(HeroConfig config, Vector3 direction, float inputAmount, float aimYaw, float delta)
+        private void TickAnimation(float delta)
         {
-            Vector3 facing;
-
-            if (config.rotationMode == HeroRotationMode.FaceCamera)
-            {
-                facing = Quaternion.Euler(0f, aimYaw, 0f) * Vector3.forward;
-            }
-            else
-            {
-                // Клавиши отпущены — сохраняем текущий разворот. Иначе полководец
-                // дёргался бы к направлению последнего кадра при каждой остановке.
-                if (inputAmount < 0.01f)
-                    return;
-
-                facing = direction;
-            }
-
-            facing.y = 0f;
-            if (facing.sqrMagnitude < 0.0001f)
+            if (!_animation.IsBound)
                 return;
 
-            Quaternion target = Quaternion.LookRotation(facing);
+            // До инициализации сетью здоровье нулевое: без этой проверки полководец
+            // играл бы смерть в первом же кадре после появления.
+            if (!IsSpawned)
+                return;
 
-            transform.rotation = config.turnSpeed > 0f
-                ? Quaternion.RotateTowards(transform.rotation, target, config.turnSpeed * delta)
-                : target;
+            _animation.SetAlive(IsAlive);
+
+            if (!IsOwner)
+            {
+                _animation.SetGrounded(true);
+                _animation.TickFromTransform(delta);
+                return;
+            }
+
+            if (_motor.ConsumeJumped())
+                _animation.PlayJump();
+
+            _animation.SetGrounded(_motor.IsGrounded);
+            _animation.Tick(_motor.PlanarVelocity, delta);
         }
 
-        [Reconcile]
-        private void PerformReconcile(HeroReconcileData data, Channel channel = Channel.Unreliable)
-        {
-            _verticalVelocity = data.VerticalVelocity;
+        private void OnAttackPerformed() => _animation.PlayAttack();
 
-            // CharacterController обязательно выключить перед переносом, иначе физика
-            // останется в старой позиции до следующего Move.
-            characterController.enabled = false;
-            transform.position = data.Position;
-            transform.rotation = Quaternion.Euler(0f, data.Yaw, 0f);
-            characterController.enabled = true;
+        private void ApplyConfig(HeroConfig config)
+        {
+            if (config == null)
+                return;
+
+            _config = config;
+            _motor.Configure(config);
+            _animation.SetReferenceSpeed(_motor.MaxSpeed);
         }
 
         public void ReceiveDamage(int amount, ICombatTarget source)
@@ -334,18 +294,35 @@ namespace Warlord.Gameplay.Heroes
             if (!IsServerInitialized || IsSpectator)
                 return;
 
-            Vector3 spawnPoint = _context.Players.GetBaseAnchor(Slot).HeroSpawnPoint;
+            ServerTeleport(_context.Players.GetBaseAnchor(Slot).HeroSpawnPoint);
 
-            characterController.enabled = false;
-            transform.position = spawnPoint;
-            characterController.enabled = true;
-
-            _verticalVelocity = 0f;
             _health.Value = _config.maxHealth;
             _timeSinceDamage = _config.outOfCombatDelay;
             _spawnProtectionTimer = _context.Config.GameMode.spawnProtectionDuration;
 
             _context.Events.RaiseHeroRespawned(Slot);
+        }
+
+        /// <summary>
+        /// Перенос тела сервером. Трансформ полководца ведёт владелец, поэтому серверу
+        /// недостаточно подвинуть свою копию — иначе следующий же пакет от клиента
+        /// вернул бы тело на место смерти. Владельцу уходит адресный приказ телепорта.
+        /// </summary>
+        private void ServerTeleport(Vector3 position)
+        {
+            characterController.enabled = false;
+            transform.position = position;
+            characterController.enabled = true;
+
+            if (Owner != null && Owner.IsActive)
+                TargetTeleport(Owner, position);
+        }
+
+        [TargetRpc]
+        private void TargetTeleport(NetworkConnection connection, Vector3 position)
+        {
+            _motor.Teleport(position);
+            _animation.ResetMotion();
         }
 
         /// <summary>Игрок выбыл: полководец больше не респавнится и не участвует в бою (ГДД §10.3).</summary>

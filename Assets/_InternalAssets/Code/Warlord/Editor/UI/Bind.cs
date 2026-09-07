@@ -61,6 +61,25 @@ namespace Warlord.EditorTools.UI
             return this;
         }
 
+        /// <summary>
+        /// Значение перечисления. Отдельно от <see cref="Int"/> намеренно: у enum-свойства
+        /// своё поле в SerializedProperty, и запись через intValue работает не для всех типов.
+        /// </summary>
+        public Bind Enum(string field, int value)
+        {
+            SerializedProperty property = Find(field);
+
+            if (property == null)
+                return this;
+
+            if (property.propertyType == SerializedPropertyType.Enum)
+                property.enumValueIndex = value;
+            else
+                property.intValue = value;
+
+            return this;
+        }
+
         public Bind Bool(string field, bool value)
         {
             SerializedProperty property = Find(field);

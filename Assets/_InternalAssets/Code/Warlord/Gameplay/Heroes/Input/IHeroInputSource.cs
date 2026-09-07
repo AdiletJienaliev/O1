@@ -9,7 +9,11 @@ namespace Warlord.Gameplay.Heroes.Input
     /// </summary>
     public interface IHeroInputSource
     {
-        /// <summary>Направление движения в осях камеры, -1..1.</summary>
+        /// <summary>
+        /// Сырое нажатие клавиш, -1..1. x — вправо/влево, y — вперёд/назад.
+        /// В мировые оси это разворачивает <see cref="Warlord.Gameplay.Heroes.HeroMotor"/>
+        /// по <see cref="AimYaw"/>: движение всегда относительно камеры, а не тела.
+        /// </summary>
         Vector2 Move { get; }
 
         bool Sprint { get; }

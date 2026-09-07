@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Warlord.Configs;
 using Warlord.Domain.Combat;
@@ -99,7 +99,7 @@ namespace Warlord.Networking.LagCompensation
         {
             foreach (KeyValuePair<ICombatTarget, History> pair in _histories)
             {
-                if (pair.Key != null && pair.Key.IsAlive)
+                if (pair.Key.IsAliveTarget())
                     pair.Value.Push(serverTime, pair.Key.Position);
             }
         }

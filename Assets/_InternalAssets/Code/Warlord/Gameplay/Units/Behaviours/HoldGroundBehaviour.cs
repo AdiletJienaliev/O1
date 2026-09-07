@@ -37,7 +37,7 @@ namespace Warlord.Gameplay.Units.Behaviours
                     if (UnitCombatRoutine.TryEngage(unit, target, context, deltaTime))
                         return;
 
-                    UnitCombatRoutine.MoveTowards(unit, context, target.Position);
+                    UnitCombatRoutine.MoveTowards(unit, army, context, target.Position, deltaTime);
                     return;
                 }
 
@@ -45,7 +45,7 @@ namespace Warlord.Gameplay.Units.Behaviours
                 unit.SetTarget(null, 0f);
             }
 
-            UnitCombatRoutine.ReturnToSlot(unit, army, context);
+            UnitCombatRoutine.ReturnToSlot(unit, army, context, deltaTime);
         }
     }
 }

@@ -2,6 +2,7 @@ using UnityEngine;
 using Warlord.Configs;
 using Warlord.Gameplay.Heroes;
 using Warlord.Gameplay.Players;
+using Warlord.Gameplay.World;
 
 namespace Warlord.UI
 {
@@ -18,18 +19,14 @@ namespace Warlord.UI
             if (config == null || hero == null || !hero.IsAlive)
                 return false;
 
-            MapConfig map = config.Map;
-            HeroConfig heroConfig = config.Hero;
-
-            if (map == null || heroConfig == null)
+            PlayerBase playerBase = PlayerBase.Get(slot);
+            if (playerBase == null)
                 return false;
 
-            PlayerBaseAnchor anchor = PlayerBaseAnchor.FromMap(map, slot);
-            float radius = heroConfig.buyZoneRadius;
-
-            Vector3 delta = hero.Position - anchor.Center;
+            Vector3 delta = hero.Position - playerBase.Center;
             delta.y = 0f;
 
+            float radius = playerBase.BuyZoneRadius;
             return delta.sqrMagnitude <= radius * radius;
         }
     }

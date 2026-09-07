@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using FishNet.Connection;
-using Warlord.Configs;
 using Warlord.Core;
+using Warlord.Gameplay.World;
 
 namespace Warlord.Gameplay.Players
 {
@@ -12,18 +12,13 @@ namespace Warlord.Gameplay.Players
     public sealed class PlayerRegistry
     {
         private readonly PlayerState[] _bySlot;
-        private readonly PlayerBaseAnchor[] _anchors;
         private readonly List<PlayerState> _active = new(PlayerSlots.MaxSupported);
         private readonly List<int> _aliveSlots = new(PlayerSlots.MaxSupported);
 
-        public PlayerRegistry(MapConfig map, int slotCount)
+        public PlayerRegistry(int slotCount)
         {
             int count = slotCount > 0 ? slotCount : PlayerSlots.MaxSupported;
             _bySlot = new PlayerState[count];
-            _anchors = new PlayerBaseAnchor[count];
-
-            for (int i = 0; i < count; i++)
-                _anchors[i] = PlayerBaseAnchor.FromMap(map, i);
         }
 
         public int SlotCount => _bySlot.Length;
@@ -33,10 +28,11 @@ namespace Warlord.Gameplay.Players
 
         public PlayerState Get(int slot) => slot >= 0 && slot < _bySlot.Length ? _bySlot[slot] : null;
 
-        public PlayerBaseAnchor GetBaseAnchor(int slot)
-        {
-            return slot >= 0 && slot < _anchors.Length ? _anchors[slot] : default;
-        }
+        /// <summary>
+        /// Точки базы слота. Читаются из сцены каждый раз, а не кэшируются при старте:
+        /// база — обычный объект сцены, и её можно двигать прямо во время отладки матча.
+        /// </summary>
+        public PlayerBaseAnchor GetBaseAnchor(int slot) => PlayerBase.GetAnchor(slot);
 
         public void Add(PlayerState player)
         {

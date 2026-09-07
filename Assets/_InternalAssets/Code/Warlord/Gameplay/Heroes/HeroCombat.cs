@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using FishNet.Connection;
 using FishNet.Object;
 using UnityEngine;
@@ -73,6 +73,11 @@ namespace Warlord.Gameplay.Heroes
             // сервер всё равно проверит кулдаун у себя и может отказать.
             _localCooldown = _config.attackCooldown;
             CmdAttack(TimeManager.LocalTick);
+
+            // Замах владелец проигрывает у себя, не дожидаясь подтверждения: ждать
+            // круг по сети ради анимации — ровно та задержка, из-за которой удар
+            // ощущается ватным. Остальным её принесёт ObserversPlayAttack.
+            AttackPerformed?.Invoke();
         }
 
         /// <summary>Серверный отсчёт кулдауна. Вызывается из боевого такта.</summary>
@@ -131,7 +136,7 @@ namespace Warlord.Gameplay.Heroes
             for (int i = 0; i < _candidates.Count; i++)
             {
                 ICombatTarget candidate = _candidates[i];
-                if (candidate == null || ReferenceEquals(candidate, hero))
+                if (!candidate.IsAliveTarget() || ReferenceEquals(candidate, hero))
                     continue;
                 if (!PlayerSlots.AreEnemies(candidate.OwnerSlot, hero.OwnerSlot))
                     continue;
@@ -171,8 +176,11 @@ namespace Warlord.Gameplay.Heroes
             });
         }
 
-        /// <summary>Визуальный отклик удара. Урон здесь не считается — только анимация и звук.</summary>
-        [ObserversRpc]
+        /// <summary>
+        /// Визуальный отклик удара. Урон здесь не считается — только анимация и звук.
+        /// Владелец исключён: он уже проиграл замах локально в момент нажатия.
+        /// </summary>
+        [ObserversRpc(ExcludeOwner = true)]
         private void ObserversPlayAttack() => AttackPerformed?.Invoke();
 
         /// <summary>Событие для аниматора и VFX. Презентация подписывается сама.</summary>

@@ -1,35 +1,47 @@
 using UnityEngine;
 using Warlord.Core;
+using Warlord.Presentation;
 
 namespace Warlord.Gameplay.Heroes.Input
 {
     /// <summary>
     /// Реализация ввода на старом Input Manager (ГДД §8: WASD, Space, Shift, ПКМ, ЛКМ).
-    /// Разовые нажатия копятся между боевыми тактами и считываются ровно один раз —
-    /// иначе при частоте кадров выше тикрейта прыжок терялся бы.
+    /// Клавиши движения читаются напрямую, а не через оси Input Manager: оси в проекте
+    /// перенастраиваются, а раскладка WASD должна работать всегда.
+    ///
+    /// Разовые нажатия копятся между кадрами и считываются ровно один раз — иначе прыжок
+    /// или приказ терялись бы, если между кадром нажатия и кадром чтения прошло больше одного шага.
     /// </summary>
     public sealed class LegacyHeroInputSource : MonoBehaviour, IHeroInputSource
     {
-        [Header("Клавиши")]
+        [Header("Движение")]
+        [Tooltip("Бег от камеры вглубь сцены.")]
+        [SerializeField] private KeyCode forwardKey = KeyCode.W;
+
+        [Tooltip("Бег на камеру.")]
+        [SerializeField] private KeyCode backKey = KeyCode.S;
+
+        [SerializeField] private KeyCode leftKey = KeyCode.A;
+        [SerializeField] private KeyCode rightKey = KeyCode.D;
         [SerializeField] private KeyCode jumpKey = KeyCode.Space;
         [SerializeField] private KeyCode sprintKey = KeyCode.LeftShift;
-        [SerializeField] private KeyCode[] orderKeys = { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3 };
-        [SerializeField] private KeyCode[] formationKeys = { KeyCode.Q, KeyCode.W, KeyCode.E };
+
+        [Header("Команды")]
+        [SerializeField] private KeyCode[] orderKeys =
+        {
+            KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4
+        };
+
+        [Tooltip("Построения. Q/W/E не годятся: W — это бег вперёд, и смена строя срабатывала бы на каждом шаге.")]
+        [SerializeField] private KeyCode[] formationKeys = { KeyCode.Z, KeyCode.X, KeyCode.C };
 
         [Header("Прицеливание")]
-        [Tooltip("Камера, по которой считается направление движения и точка приказа.")]
+        [Tooltip("Запасная камера на случай, если орбитальной в сцене нет. Обычно пусто.")]
         [SerializeField] private Camera aimCamera;
 
         [Tooltip("Слои, по которым ищется точка приказа под курсором.")]
         [SerializeField] private LayerMask groundMask = ~0;
 
-        [Header("Сглаживание")]
-        [Tooltip("За сколько секунд ввод набирает полную величину. 0 — мгновенно, как раньше.")]
-        [SerializeField] private float moveSmoothTime = 0.09f;
-
-        private Warlord.Presentation.HeroOrbitCamera _orbit;
-        private Vector2 _smoothedMove;
-        private Vector2 _moveVelocity;
         private bool _jumpBuffered;
         private bool _attackBuffered;
         private int _orderRequest = -1;
@@ -43,48 +55,68 @@ namespace Warlord.Gameplay.Heroes.Input
         public bool Sprint { get; private set; }
         public float AimYaw { get; private set; }
 
-        private void Awake() => ResolveCamera();
-
         private void Update()
         {
-            ResolveCamera();
+            ReadAim();
 
             // Открытый экран интерфейса забирает и мышь, и клавиатуру: иначе ввод адреса
             // в поле подключения заодно двигал бы полководца и раздавал приказы.
             if (!Enabled || InputFocus.UiCapturesCursor)
             {
-                _smoothedMove = Vector2.zero;
-                _moveVelocity = Vector2.zero;
                 Move = Vector2.zero;
                 Sprint = false;
                 return;
             }
 
-            Vector2 raw = new Vector2(
-                UnityEngine.Input.GetAxisRaw("Horizontal"),
-                UnityEngine.Input.GetAxisRaw("Vertical"));
-
-            // Разгон и торможение по времени: сырой 0/1 с клавиатуры давал рывок на каждом
-            // нажатии, а сглаживание ввода безопасно для предсказания — оно едет по сети.
-            _smoothedMove = moveSmoothTime > 0f
-                ? Vector2.SmoothDamp(_smoothedMove, raw, ref _moveVelocity, moveSmoothTime)
-                : raw;
-
-            Move = _smoothedMove;
+            // Сырые 0/1 без сглаживания: разгон и торможение считает HeroMotor по времени,
+            // и делать то же самое дважды — значит получить вялое, «резиновое» управление.
+            Move = new Vector2(
+                Axis(rightKey, leftKey),
+                Axis(forwardKey, backKey));
 
             Sprint = UnityEngine.Input.GetKey(sprintKey);
-
-            // Направление движения задаёт камера: WASD всегда относительно взгляда.
-            // Азимут берём у орбитальной камеры напрямую — её eulerAngles искажены наклоном.
-            AimYaw = _orbit != null
-                ? _orbit.Yaw
-                : (aimCamera != null ? aimCamera.transform.eulerAngles.y : transform.eulerAngles.y);
 
             if (UnityEngine.Input.GetKeyDown(jumpKey))
                 _jumpBuffered = true;
 
             ReadMouse();
+            ReadCommandKeys();
+        }
 
+        /// <summary>
+        /// Направление движения задаёт камера: WASD всегда относительно взгляда.
+        /// Азимут берём у орбитальной камеры напрямую — её eulerAngles искажены наклоном.
+        /// </summary>
+        private void ReadAim()
+        {
+            HeroOrbitCamera orbit = HeroOrbitCamera.Current;
+
+            if (orbit != null)
+            {
+                AimYaw = orbit.Yaw;
+                return;
+            }
+
+            Camera fallback = ResolveFallbackCamera();
+
+            if (fallback != null)
+                AimYaw = fallback.transform.eulerAngles.y;
+        }
+
+        /// <summary>
+        /// Камера на крайний случай. Собственную камеру полководца брать нельзя: она вращается
+        /// вместе с телом, и оси ввода уехали бы за поворотом — полководец бегал бы по спирали.
+        /// </summary>
+        private Camera ResolveFallbackCamera()
+        {
+            if (aimCamera != null && aimCamera.isActiveAndEnabled && !aimCamera.transform.IsChildOf(transform))
+                return aimCamera;
+
+            return Camera.main;
+        }
+
+        private void ReadCommandKeys()
+        {
             for (int i = 0; i < orderKeys.Length; i++)
             {
                 if (UnityEngine.Input.GetKeyDown(orderKeys[i]))
@@ -115,16 +147,6 @@ namespace Warlord.Gameplay.Heroes.Input
             }
         }
 
-        /// <summary>Камера появляется в сцене независимо от полководца, поэтому ищем её, пока не найдём.</summary>
-        private void ResolveCamera()
-        {
-            if (aimCamera == null)
-                aimCamera = Camera.main;
-
-            if (_orbit == null && aimCamera != null)
-                _orbit = aimCamera.GetComponent<Warlord.Presentation.HeroOrbitCamera>();
-        }
-
         public bool ConsumeJump() => Consume(ref _jumpBuffered);
 
         public bool ConsumeAttack() => Consume(ref _attackBuffered);
@@ -152,7 +174,11 @@ namespace Warlord.Gameplay.Heroes.Input
         private bool TryPickGround(out Vector3 point)
         {
             point = default;
-            if (aimCamera == null)
+
+            HeroOrbitCamera orbit = HeroOrbitCamera.Current;
+            Camera camera = orbit != null ? orbit.Camera : ResolveFallbackCamera();
+
+            if (camera == null)
                 return false;
 
             // При захваченном курсоре Input.mousePosition замирает и врать будет всегда одинаково,
@@ -161,12 +187,25 @@ namespace Warlord.Gameplay.Heroes.Input
                 ? new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f)
                 : UnityEngine.Input.mousePosition;
 
-            Ray ray = aimCamera.ScreenPointToRay(screenPoint);
+            Ray ray = camera.ScreenPointToRay(screenPoint);
             if (!Physics.Raycast(ray, out RaycastHit hit, 500f, groundMask, QueryTriggerInteraction.Ignore))
                 return false;
 
             point = hit.point;
             return true;
+        }
+
+        private static float Axis(KeyCode positive, KeyCode negative)
+        {
+            float value = 0f;
+
+            if (UnityEngine.Input.GetKey(positive))
+                value += 1f;
+
+            if (UnityEngine.Input.GetKey(negative))
+                value -= 1f;
+
+            return value;
         }
 
         private static bool Consume(ref bool flag)

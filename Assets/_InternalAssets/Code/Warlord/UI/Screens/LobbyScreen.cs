@@ -7,6 +7,7 @@ using Warlord.Configs;
 using Warlord.Core;
 using Warlord.Domain.Match;
 using Warlord.Gameplay.Match;
+using Warlord.Gameplay.World;
 using Warlord.Networking.Lobby;
 using Warlord.UI.Widgets;
 
@@ -138,8 +139,7 @@ namespace Warlord.UI.Screens
             if (mapLabel == null || _match == null || _match.Config == null)
                 return;
 
-            MapConfig map = _match.Config.Map;
-            mapLabel.text = map != null ? map.displayName : "Карта не задана";
+            mapLabel.text = MatchArena.Title;
         }
 
         private bool AllOccupiedReady(out int occupied)

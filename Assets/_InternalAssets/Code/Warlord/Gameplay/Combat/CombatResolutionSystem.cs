@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Warlord.Core;
 using Warlord.Domain.Combat;
@@ -45,11 +45,25 @@ namespace Warlord.Gameplay.Combat
                 if (!damageEvent.Target.IsAlive)
                     continue;
 
-                int finalDamage = _calculator.Resolve(in damageEvent);
-                damageEvent.Target.ReceiveDamage(finalDamage, damageEvent.Attacker);
+                // Атакующего могли уничтожить внутри того же такта: дальше он идёт как анонимный
+                // источник урона, иначе обращение к его позиции или слоту упало бы.
+                ICombatTarget attacker = damageEvent.LivingAttacker;
+
+                int finalDamage = _calculator.Resolve(in damageEvent, out bool blocked);
+
+                // Принятый на щит удар не проходит по здоровью, но событием остаётся:
+                // без него юнит молча стоял бы под градом стрел, а в спину ему целиться
+                // было бы некому — тот, кого он должен запомнить, так и не запомнился бы.
+                if (blocked && damageEvent.Target is IShieldedTarget shielded)
+                    shielded.NotifyBlocked(attacker);
+
+                if (finalDamage <= 0)
+                    continue;
+
+                damageEvent.Target.ReceiveDamage(finalDamage, attacker);
 
                 if (!damageEvent.Target.IsAlive)
-                    _deaths.Add(new KeyValuePair<ICombatTarget, ICombatTarget>(damageEvent.Target, damageEvent.Attacker));
+                    _deaths.Add(new KeyValuePair<ICombatTarget, ICombatTarget>(damageEvent.Target, attacker));
             }
 
             _queue.Clear();

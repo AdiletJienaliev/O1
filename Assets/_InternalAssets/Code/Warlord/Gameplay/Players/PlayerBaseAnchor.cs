@@ -1,11 +1,11 @@
 using UnityEngine;
-using Warlord.Configs;
 
 namespace Warlord.Gameplay.Players
 {
     /// <summary>
-    /// Точки базы игрока в мировых координатах. Снимок из <see cref="MapConfig"/>,
-    /// чтобы код спавна и зон не лазил в конфиг за каждой мелочью.
+    /// Точки базы игрока в мировых координатах. Снимок с объекта
+    /// <see cref="Warlord.Gameplay.World.PlayerBase"/> из сцены, чтобы код спавна и зон
+    /// не дёргал сцену за каждой мелочью и работал с обычной структурой.
     /// </summary>
     public readonly struct PlayerBaseAnchor
     {
@@ -14,21 +14,21 @@ namespace Warlord.Gameplay.Players
         public readonly Vector3 HeroSpawnPoint;
         public readonly float YawDegrees;
 
-        public PlayerBaseAnchor(Vector3 center, Vector3 unitSpawnPoint, Vector3 heroSpawnPoint, float yawDegrees)
+        /// <summary>Радиус зоны покупки вокруг базы. Задаётся на самой базе, а не в конфиге полководца.</summary>
+        public readonly float BuyZoneRadius;
+
+        public PlayerBaseAnchor(
+            Vector3 center,
+            Vector3 unitSpawnPoint,
+            Vector3 heroSpawnPoint,
+            float yawDegrees,
+            float buyZoneRadius)
         {
             Center = center;
             UnitSpawnPoint = unitSpawnPoint;
             HeroSpawnPoint = heroSpawnPoint;
             YawDegrees = yawDegrees;
-        }
-
-        public static PlayerBaseAnchor FromMap(MapConfig map, int slot)
-        {
-            if (map == null || !map.HasBase(slot))
-                return new PlayerBaseAnchor(Vector3.zero, Vector3.zero, Vector3.zero, 0f);
-
-            MapConfig.BaseAnchor anchor = map.GetBase(slot);
-            return new PlayerBaseAnchor(anchor.position, anchor.unitSpawnPoint, anchor.heroSpawnPoint, anchor.yawDegrees);
+            BuyZoneRadius = buyZoneRadius;
         }
     }
 }

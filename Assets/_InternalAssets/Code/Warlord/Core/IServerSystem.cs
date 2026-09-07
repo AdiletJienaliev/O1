@@ -31,6 +31,10 @@ namespace Warlord.Core
         public const int Capture = 100;
         public const int Economy = 200;
         public const int SpawnQueue = 300;
+
+        /// <summary>Кого бьёт армия целиком. Считается до строя: приказ может смениться сам.</summary>
+        public const int ArmyEngagement = 350;
+
         public const int Formation = 400;
         public const int UnitAi = 500;
         public const int HeroCombat = 550;

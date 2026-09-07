@@ -5,13 +5,14 @@ using Warlord.Core;
 using Warlord.Gameplay.Capture;
 using Warlord.Gameplay.Heroes;
 using Warlord.Gameplay.Players;
+using Warlord.Gameplay.World;
 
 namespace Warlord.UI.Widgets
 {
     /// <summary>
-    /// Миникарта арены. Проекция плоская: карта квадратная (<see cref="MapConfig.size"/>),
+    /// Миникарта арены. Проекция плоская: арена квадратная (<see cref="MatchArena.Size"/>),
     /// поэтому мировые X и Z линейно ложатся на прямоугольник виджета без камеры и рендер-текстур.
-    /// Без заполненного MapConfig миникарта прячется — рисовать наугад хуже, чем не рисовать.
+    /// Без арены в сцене миникарта прячется — рисовать наугад хуже, чем не рисовать.
     /// </summary>
     public sealed class MinimapWidget : HudWidget
     {
@@ -50,8 +51,8 @@ namespace Warlord.UI.Widgets
             if (!HasMatch || field == null)
                 return;
 
-            MapConfig map = Match.Config != null ? Match.Config.Map : null;
-            bool usable = map != null && map.size > 1f;
+            float arenaSize = MatchArena.Size;
+            bool usable = arenaSize > 1f;
 
             if (root != null && root.activeSelf != usable)
                 root.SetActive(usable);
@@ -66,14 +67,14 @@ namespace Warlord.UI.Widgets
             _used = 0;
             int localSlot = player != null ? player.Slot : PlayerSlots.None;
 
-            DrawPoints(map);
-            DrawHeroes(map, localSlot);
+            DrawPoints(arenaSize);
+            DrawHeroes(arenaSize, localSlot);
 
             for (int i = _used; i < _markers.Count; i++)
                 _markers[i].Show(false);
         }
 
-        private void DrawPoints(MapConfig map)
+        private void DrawPoints(float arenaSize)
         {
             for (int i = 0; i < _points.Count; i++)
             {
@@ -84,7 +85,7 @@ namespace Warlord.UI.Widgets
                 bool central = point.Kind == CapturePointKind.CentralFlag;
 
                 Push(
-                    Project(point.transform.position, map),
+                    Project(point.transform.position, arenaSize),
                     SlotColor(point.OwnerSlot),
                     central ? flagIcon : baseIcon,
                     flagScale,
@@ -92,7 +93,7 @@ namespace Warlord.UI.Widgets
             }
         }
 
-        private void DrawHeroes(MapConfig map, int localSlot)
+        private void DrawHeroes(float arenaSize, int localSlot)
         {
             for (int i = 0; i < _heroes.Count; i++)
             {
@@ -100,7 +101,7 @@ namespace Warlord.UI.Widgets
                 if (hero == null || !hero.IsAlive)
                     continue;
 
-                Push(Project(hero.Position, map), SlotColor(hero.Slot), heroIcon, heroScale, hero.Slot == localSlot);
+                Push(Project(hero.Position, arenaSize), SlotColor(hero.Slot), heroIcon, heroScale, hero.Slot == localSlot);
             }
         }
 
@@ -114,10 +115,10 @@ namespace Warlord.UI.Widgets
             marker.Apply(position, color, sprite, scale, highlighted);
         }
 
-        private Vector2 Project(Vector3 world, MapConfig map)
+        private Vector2 Project(Vector3 world, float arenaSize)
         {
             Vector2 size = field.rect.size;
-            float half = map.size * 0.5f;
+            float half = arenaSize * 0.5f;
 
             float x = Mathf.Clamp(world.x / half, -1f, 1f) * size.x * 0.5f;
             float y = Mathf.Clamp(world.z / half, -1f, 1f) * size.y * 0.5f;

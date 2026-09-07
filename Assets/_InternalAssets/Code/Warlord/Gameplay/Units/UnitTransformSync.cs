@@ -4,6 +4,7 @@ using FishNet.Transporting;
 using UnityEngine;
 using Warlord.Configs;
 using Warlord.Gameplay.Match;
+using Warlord.Gameplay.World;
 using Warlord.Networking.Sync;
 
 namespace Warlord.Gameplay.Units
@@ -44,9 +45,8 @@ namespace Warlord.Gameplay.Units
             base.OnStartNetwork();
 
             NetworkConfig network = MatchManager.Instance != null ? MatchManager.Instance.Config.Network : null;
-            MapConfig map = MatchManager.Instance != null ? MatchManager.Instance.Config.Map : null;
 
-            _quantizer = new TransformQuantizer(map);
+            _quantizer = new TransformQuantizer(MatchArena.Size, MatchArena.HeightRange);
             if (network != null)
             {
                 _sendInterval = network.UnitSyncInterval;

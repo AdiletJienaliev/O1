@@ -233,6 +233,23 @@ namespace Warlord.EditorTools.UI
             return layout;
         }
 
+        /// <summary>Сетка фиксированной ширины: поле расстановки армии кладётся именно так.</summary>
+        public static GridLayoutGroup Grid(
+            this RectTransform rect,
+            Vector2 cellSize,
+            Vector2 spacing,
+            int columns,
+            TextAnchor alignment = TextAnchor.UpperCenter)
+        {
+            GridLayoutGroup layout = rect.gameObject.AddComponent<GridLayoutGroup>();
+            layout.cellSize = cellSize;
+            layout.spacing = spacing;
+            layout.childAlignment = alignment;
+            layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            layout.constraintCount = columns;
+            return layout;
+        }
+
         public static ContentSizeFitter Fit(this RectTransform rect, ContentSizeFitter.FitMode horizontal, ContentSizeFitter.FitMode vertical)
         {
             ContentSizeFitter fitter = rect.gameObject.AddComponent<ContentSizeFitter>();

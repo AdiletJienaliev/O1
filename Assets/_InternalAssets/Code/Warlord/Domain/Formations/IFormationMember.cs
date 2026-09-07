@@ -14,6 +14,9 @@ namespace Warlord.Domain.Formations
         /// <summary>Стабильный id для детерминированной сортировки при равном приоритете.</summary>
         int StableId { get; }
 
+        /// <summary>Индекс типа в ростере. По нему пользовательский пресет раскладывает армию.</summary>
+        int UnitTypeIndex { get; }
+
         void AssignFormationSlot(int slotIndex, Vector3 worldPosition);
     }
 }

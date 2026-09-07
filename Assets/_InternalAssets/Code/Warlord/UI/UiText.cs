@@ -49,6 +49,7 @@ namespace Warlord.UI
                 case ArmyOrderType.HoldGround: return "Стоять";
                 case ArmyOrderType.FollowLeader: return "За мной";
                 case ArmyOrderType.AttackMove: return "В атаку";
+                case ArmyOrderType.Defend: return "Защита";
                 default: return order.ToString();
             }
         }

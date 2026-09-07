@@ -41,11 +41,26 @@ namespace Warlord.Domain.Stats
                 attackInterval: unit.attackInterval,
                 attackRange: unit.attackRange * rangeMultiplier,
                 moveSpeed: unit.moveSpeed * speedMultiplier,
+
+                // Шаг растёт вместе с бегом: иначе прокачка скорости ломала бы походку —
+                // юнит носился бы по полю, а у слота всё так же еле переставлял ноги.
+                walkSpeed: unit.moveSpeed * speedMultiplier * unit.walkSpeedFactor,
+                runDistance: unit.runDistance,
                 turnSpeed: unit.turnSpeed,
                 armor: unit.armor,
                 aggroRadius: aggroRadius,
                 isRanged: unit.isRanged,
-                projectileSpeed: unit.projectileSpeed);
+                projectileSpeed: unit.projectileSpeed,
+
+                // Радиус взрыва прокачкой дальности не растёт: иначе ветка дальнобойности
+                // превращалась бы для мага в двойной множитель урона.
+                splashRadius: unit.splashRadius,
+                splashDamageFactor: unit.splashDamageFactor,
+
+                // Щит прокачкой не трогается: это свойство снаряжения, а не характеристика.
+                hasShield: unit.hasShield,
+                blockAngle: unit.blockAngle,
+                blockDamageFactor: unit.blockDamageFactor);
         }
 
         /// <summary>Лимит живых юнитов: база из режима плюс плоский бонус ветки UnitCap.</summary>

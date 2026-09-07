@@ -8,6 +8,7 @@ using UnityEngine;
 using Warlord.Core;
 using Warlord.Gameplay.Heroes;
 using Warlord.Gameplay.Match;
+using Warlord.Gameplay.World;
 
 namespace Warlord.Gameplay.Players
 {
@@ -118,6 +119,14 @@ namespace Warlord.Gameplay.Players
             {
                 Debug.LogWarning($"WarlordPlayerSpawner: свободных слотов нет, клиент {connection.ClientId} остаётся наблюдателем");
                 return true;
+            }
+
+            if (PlayerBase.Get(slot) == null)
+            {
+                Debug.LogError(
+                    $"WarlordPlayerSpawner: в сцене нет базы для слота {slot}. " +
+                    "Поставьте объект с PlayerBase (меню Warlord/Настройка) — иначе спавн уедет в начало координат.",
+                    this);
             }
 
             PlayerBaseAnchor anchor = manager.ServerContext.Players.GetBaseAnchor(slot);
