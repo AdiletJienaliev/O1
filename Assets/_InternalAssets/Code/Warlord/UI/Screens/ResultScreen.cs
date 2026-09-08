@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using FishNet;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,6 +7,7 @@ using Warlord.Core;
 using Warlord.Domain.Match;
 using Warlord.Gameplay.Match;
 using Warlord.Gameplay.Players;
+using Warlord.Networking;
 using Warlord.UI.Widgets;
 
 namespace Warlord.UI.Screens
@@ -38,6 +38,7 @@ namespace Warlord.UI.Screens
         private readonly List<PlayerState> _players = new(4);
 
         private MatchManager _match;
+        private NetworkBootstrap _bootstrap;
         private MatchOutcome _outcome = MatchOutcome.None;
 
         protected override void Awake()
@@ -159,16 +160,14 @@ namespace Warlord.UI.Screens
             }
         }
 
-        private static void Leave()
+        /// <summary>
+        /// Выход из матча идёт через бутстрап: он знает, какой транспорт остановить
+        /// и что выйти надо ещё и из лобби платформы.
+        /// </summary>
+        private void Leave()
         {
-            if (InstanceFinder.NetworkManager == null)
-                return;
-
-            if (InstanceFinder.IsClientStarted)
-                InstanceFinder.ClientManager.StopConnection();
-
-            if (InstanceFinder.IsServerStarted)
-                InstanceFinder.ServerManager.StopConnection(true);
+            _bootstrap ??= FindAnyObjectByType<NetworkBootstrap>();
+            _bootstrap?.Shutdown();
         }
     }
 }

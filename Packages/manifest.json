@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "com.heathen.steamworkscomplete": "file:C:/HeaSteamworks/Steamworks/com.heathen.steamworkscomplete",
+    "com.heathen.systemcore": "https://github.com/heathen-engineering/SystemCore.git?path=/com.heathen.systemcore",
+    "com.rlabrecque.steamworks.net": "https://github.com/rlabrecque/Steamworks.NET.git?path=/com.rlabrecque.steamworks.net#2025.161.0",
     "com.unity.ai.navigation": "2.0.12",
     "com.unity.collab-proxy": "2.12.4",
     "com.unity.ide.rider": "3.0.39",

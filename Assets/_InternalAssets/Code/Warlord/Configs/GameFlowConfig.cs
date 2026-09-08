@@ -19,8 +19,24 @@ namespace Warlord.Configs
         public bool autoStartHost;
 
         [Header("Подключение")]
+        [Tooltip("Через что соединяться. Localhost — адрес и порт как раньше, Steam — лобби " +
+                 "с приглашениями друзей, Auto — Steam, если он запустился, иначе адрес и порт.")]
+        public NetworkBackend backend = NetworkBackend.Localhost;
+
         public string address = "127.0.0.1";
         public ushort port = 7770;
+
+        [Header("Steam")]
+        [Tooltip("Кто видит созданное лобби. FriendsOnly — только друзья и приглашённые, " +
+                 "Private — вообще только приглашённые, Public — ещё и в поиске комнат.")]
+        public SteamLobbyVisibility lobbyVisibility = SteamLobbyVisibility.FriendsOnly;
+
+        [Tooltip("Имя комнаты в Steam. Пусто — подставится ник хоста.")]
+        public string lobbyName = "";
+
+        [Tooltip("Принимать приглашение, когда игрок уже в матче. Обычно не нужно: " +
+                 "текущий бой оборвётся, а host migration в v0.1 нет.")]
+        public bool acceptInvitesDuringMatch;
 
         [Header("Отсчёт")]
         [Tooltip("Взять длительность обратного отсчёта отсюда, а не из GameModeConfig.")]

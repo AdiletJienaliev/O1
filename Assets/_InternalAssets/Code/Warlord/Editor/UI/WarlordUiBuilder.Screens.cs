@@ -168,6 +168,13 @@ namespace Warlord.EditorTools.UI
             Button leave = MenuButton("LeaveButton", screen, "ВЫЙТИ", Kit.ButtonGray);
             leave.GetComponent<RectTransform>().At(Ui.TopLeft, new Vector2(30f, -30f), new Vector2(180f, 62f));
 
+            // Приглашения. Экран сам прячет их, когда играем по адресу, а не через платформу.
+            Button invite = MenuButton("InviteButton", screen, "ПРИГЛАСИТЬ ДРУЗЕЙ", Kit.ButtonBlue);
+            invite.GetComponent<RectTransform>().At(Ui.TopRight, new Vector2(-30f, -30f), new Vector2(340f, 62f));
+
+            TextMeshProUGUI platformMembers = Ui.Label("PlatformMembers", screen, "", 20f, Ui.InkMuted, TextAlignmentOptions.Right);
+            platformMembers.rectTransform.At(Ui.TopRight, new Vector2(-30f, -100f), new Vector2(440f, 26f));
+
             LobbyScreen lobby = screen.gameObject.AddComponent<LobbyScreen>();
 
             using (Bind bind = new(lobby))
@@ -187,7 +194,9 @@ namespace Warlord.EditorTools.UI
                     .Ref("durationLabel", durationValue)
                     .Ref("startingGoldSlider", gold)
                     .Ref("startingGoldLabel", goldValue)
-                    .Ref("mapLabel", map);
+                    .Ref("mapLabel", map)
+                    .Ref("inviteButton", invite)
+                    .Ref("platformMembersLabel", platformMembers);
             }
 
             return lobby;

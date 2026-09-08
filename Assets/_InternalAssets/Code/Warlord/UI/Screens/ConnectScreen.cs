@@ -11,6 +11,11 @@ namespace Warlord.UI.Screens
     /// Вход в игру: поднять хост или подключиться к нему (ГДД §12 — host-client, выделенного
     /// сервера в v0.1 нет). Экран не знает про транспорт: всё делает <see cref="NetworkBootstrap"/>.
     /// </summary>
+    /// <remarks>
+    /// В режиме Steam адрес не вводят: к хосту попадают по приглашению друга, поэтому поля
+    /// адреса и кнопка подключения прячутся. Решение о режиме принимает бутстрап — экран
+    /// только показывает то, что он выбрал.
+    /// </remarks>
     public sealed class ConnectScreen : UiScreen
     {
         [Header("Сеть")]
@@ -32,6 +37,9 @@ namespace Warlord.UI.Screens
         [Header("Значения по умолчанию")]
         [SerializeField] private string defaultAddress = "127.0.0.1";
         [SerializeField] private ushort defaultPort = 7770;
+
+        /// <summary>Статус соединения перекрывает статус платформы, пока идёт подключение.</summary>
+        private string _connectionStatus;
 
         protected override void Awake()
         {
@@ -70,12 +78,42 @@ namespace Warlord.UI.Screens
                 InstanceFinder.ClientManager.OnClientConnectionState -= OnConnectionState;
         }
 
+        private void Update()
+        {
+            if (IsVisible)
+                RefreshMode();
+        }
+
+        /// <summary>
+        /// Режим выясняется не в Awake: Steam поднимается асинхронно, и до его ответа
+        /// бутстрап ещё не знает, по адресу мы играем или по приглашению.
+        /// </summary>
+        private void RefreshMode()
+        {
+            bool steam = bootstrap != null && bootstrap.UsesSteam;
+            bool ready = bootstrap == null || bootstrap.IsReady;
+
+            if (addressField != null)
+                addressField.gameObject.SetActive(!steam);
+
+            if (portField != null)
+                portField.gameObject.SetActive(!steam);
+
+            if (joinButton != null)
+                joinButton.gameObject.SetActive(!steam);
+
+            if (hostButton != null)
+                hostButton.interactable = ready;
+
+            SetStatus(_connectionStatus ?? (bootstrap != null ? bootstrap.Status : string.Empty));
+        }
+
         private void StartHost()
         {
             if (!EnsureBootstrap())
                 return;
 
-            SetStatus("Поднимаем хост...");
+            _connectionStatus = "Поднимаем хост...";
             bootstrap.StartHost(ReadPort());
         }
 
@@ -88,7 +126,7 @@ namespace Warlord.UI.Screens
                 ? addressField.text.Trim()
                 : defaultAddress;
 
-            SetStatus("Подключаемся к " + address + "...");
+            _connectionStatus = "Подключаемся к " + address + "...";
             bootstrap.StartClient(address, ReadPort());
         }
 
@@ -125,13 +163,13 @@ namespace Warlord.UI.Screens
             switch (args.ConnectionState)
             {
                 case LocalConnectionState.Starting:
-                    SetStatus("Соединение...");
+                    _connectionStatus = "Соединение...";
                     break;
                 case LocalConnectionState.Started:
-                    SetStatus("Подключено");
+                    _connectionStatus = "Подключено";
                     break;
                 case LocalConnectionState.Stopped:
-                    SetStatus("Соединение разорвано");
+                    _connectionStatus = "Соединение разорвано";
                     break;
             }
         }

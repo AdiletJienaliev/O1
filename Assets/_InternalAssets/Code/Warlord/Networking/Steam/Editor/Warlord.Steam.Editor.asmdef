@@ -1,0 +1,23 @@
+{
+    "name": "Warlord.Steam.Editor",
+    "rootNamespace": "Warlord.EditorTools.Steam",
+    "references": [
+        "Warlord.Steam",
+        "Warlord.Runtime",
+        "Warlord.Editor",
+        "FishNet.Runtime",
+        "com.rlabrecque.steamworks.net",
+        "Heathen.Steamworks"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

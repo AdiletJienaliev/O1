@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using FishNet;
 using TMPro;
 using UnityEngine;
@@ -8,6 +9,7 @@ using Warlord.Core;
 using Warlord.Domain.Match;
 using Warlord.Gameplay.Match;
 using Warlord.Gameplay.World;
+using Warlord.Networking;
 using Warlord.Networking.Lobby;
 using Warlord.UI.Widgets;
 
@@ -44,11 +46,20 @@ namespace Warlord.UI.Screens
         [Header("Заголовок")]
         [SerializeField] private TextMeshProUGUI mapLabel;
 
+        [Header("Приглашения")]
+        [Tooltip("Открывает оверлей Steam со списком друзей. В режиме адреса кнопка скрыта.")]
+        [SerializeField] private Button inviteButton;
+
+        [Tooltip("Кто уже в комнате платформы — до того, как подключился к матчу.")]
+        [SerializeField] private TextMeshProUGUI platformMembersLabel;
+
         private readonly List<LobbySlotView> _slotViews = new(4);
         private readonly List<Button> _colorButtons = new(4);
+        private readonly StringBuilder _members = new();
 
         private LobbyManager _lobby;
         private MatchManager _match;
+        private NetworkBootstrap _bootstrap;
         private bool _localReady;
         private bool _settingsBound;
 
@@ -64,6 +75,9 @@ namespace Warlord.UI.Screens
 
             if (leaveButton != null)
                 leaveButton.onClick.AddListener(Leave);
+
+            if (inviteButton != null)
+                inviteButton.onClick.AddListener(InviteFriends);
         }
 
         private void Update()
@@ -81,13 +95,52 @@ namespace Warlord.UI.Screens
             BindHostSettings();
             RefreshSlots();
             RefreshControls();
+            RefreshPlatform();
         }
 
         private void Resolve()
         {
             _lobby ??= FindAnyObjectByType<LobbyManager>();
             _match ??= MatchManager.Instance;
+            _bootstrap ??= FindAnyObjectByType<NetworkBootstrap>();
         }
+
+        /// <summary>
+        /// Приглашения показываются только там, где они работают: в режиме адреса звать
+        /// друзей нечем, и кнопка, которая ничего не делает, хуже её отсутствия.
+        /// </summary>
+        private void RefreshPlatform()
+        {
+            IPlatformSession platform = _bootstrap != null ? _bootstrap.Platform : NullPlatformSession.Instance;
+
+            if (inviteButton != null)
+            {
+                inviteButton.gameObject.SetActive(platform.IsReady);
+                inviteButton.interactable = platform.CanInvite;
+            }
+
+            if (platformMembersLabel == null)
+                return;
+
+            platformMembersLabel.gameObject.SetActive(platform.InLobby);
+
+            if (!platform.InLobby)
+                return;
+
+            _members.Clear();
+
+            for (int i = 0; i < platform.MemberCount; i++)
+            {
+                if (_members.Length > 0)
+                    _members.Append(", ");
+
+                _members.Append(platform.GetMemberName(i));
+            }
+
+            platformMembersLabel.text = _members.ToString();
+        }
+
+        private void InviteFriends() => _bootstrap?.InviteFriends();
 
         private void RefreshSlots()
         {
@@ -277,16 +330,14 @@ namespace Warlord.UI.Screens
 
         private void RequestStart() => _lobby?.CmdStartMatch();
 
-        private static void Leave()
+        /// <summary>
+        /// Выход из комнаты идёт через бутстрап: он же знает, какой транспорт остановить
+        /// и что выйти надо ещё и из лобби платформы.
+        /// </summary>
+        private void Leave()
         {
-            if (InstanceFinder.NetworkManager == null)
-                return;
-
-            if (InstanceFinder.IsClientStarted)
-                InstanceFinder.ClientManager.StopConnection();
-
-            if (InstanceFinder.IsServerStarted)
-                InstanceFinder.ServerManager.StopConnection(true);
+            _bootstrap ??= FindAnyObjectByType<NetworkBootstrap>();
+            _bootstrap?.Shutdown();
         }
 
         private TeamColorConfig TeamColors()

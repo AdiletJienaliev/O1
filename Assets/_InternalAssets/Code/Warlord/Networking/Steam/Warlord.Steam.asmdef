@@ -1,0 +1,28 @@
+{
+    "name": "Warlord.Steam",
+    "rootNamespace": "Warlord.Networking.Steam",
+    "references": [
+        "Warlord.Runtime",
+        "FishNet.Runtime",
+        "com.rlabrecque.steamworks.net",
+        "Heathen.Steamworks",
+        "Heathen.Core",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor",
+        "LinuxStandalone64",
+        "macOSStandalone",
+        "WindowsStandalone32",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
