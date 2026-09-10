@@ -21,6 +21,15 @@ namespace Warlord.Gameplay.Match
         MatchSettings Settings { get; }
         MatchPhase Phase { get; }
 
+        /// <summary>
+        /// Кто с кем в команде. Единственный источник ответа «враг или свой» во всём матче:
+        /// сравнивать номера слотов напрямую нельзя — в командном матче они врут.
+        /// </summary>
+        TeamLayout Teams { get; }
+
+        /// <summary>Стартовый состав: кто живой игрок, кто бот, с каким характером и сложностью.</summary>
+        MatchRoster Roster { get; }
+
         MatchEvents Events { get; }
         ScoreBoard Scores { get; }
 

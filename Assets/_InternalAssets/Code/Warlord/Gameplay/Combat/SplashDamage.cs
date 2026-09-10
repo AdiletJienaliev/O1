@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using Warlord.Core;
 using Warlord.Domain.Combat;
@@ -55,8 +55,9 @@ namespace Warlord.Gameplay.Combat
                     continue;
 
                 // Своих взрывом не задевает: дружественный огонь в ГДД не предусмотрен,
-                // а без этой проверки маг выкашивал бы собственный строй.
-                if (!PlayerSlots.AreEnemies(candidate.OwnerSlot, attackerSlot))
+                // а без этой проверки маг выкашивал бы собственный строй. Союзник по команде
+                // здесь тоже свой — раскладку спрашиваем у реестра целей, а не у номеров слотов.
+                if (!targeting.Teams.AreEnemies(candidate.OwnerSlot, attackerSlot))
                     continue;
 
                 damage.Enqueue(attacker, candidate, splashDamage);

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fe949638882cd446a43687a183e090f, type: 3}
+  m_Name: BotSetConfig
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Configs.Bots.BotSetConfig
+  personalities:
+  - {fileID: 11400000, guid: b40445b5b56977b45b6d158a68e3792a, type: 2}
+  - {fileID: 11400000, guid: 967acfd0233dbdd46893d8d6d4f313aa, type: 2}
+  - {fileID: 11400000, guid: 0259892519e60af45b7fc5dac64ce043, type: 2}
+  - {fileID: 11400000, guid: 3f7c9cf021085514c9259d6110d53de3, type: 2}
+  - {fileID: 11400000, guid: 897db3ce5a16308478536d1dd7670ebc, type: 2}
+  difficulties:
+  - {fileID: 11400000, guid: bde5b64081430c942873f6c46644cb75, type: 2}
+  - {fileID: 11400000, guid: 81503773eb470894f9a77d3ca240966c, type: 2}
+  - {fileID: 11400000, guid: 27ac49ca519a3a347b9fcbc8a8dd5bbf, type: 2}
+  - {fileID: 11400000, guid: 10c266f96de718542bfdff8950f9b30b, type: 2}
+  defaultPersonality: 0

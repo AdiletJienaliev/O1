@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using Warlord.Core;
 using Warlord.Domain.Combat;
@@ -15,14 +15,24 @@ namespace Warlord.Gameplay.Combat
     {
         private readonly List<ICombatTarget>[] _bySlot;
         private readonly Dictionary<ICombatTarget, int> _attackersThisTick = new(128);
+        private readonly TeamLayout _teams;
 
-        public TargetingService(int slotCount)
+        /// <param name="teams">
+        /// Раскладка команд. Пустая означает FFA, поэтому поиск врага одинаково
+        /// работает и в свалке всех против всех, и в матче «игрок с ботом против ботов»:
+        /// пропускается не «мой слот», а вся моя сторона.
+        /// </param>
+        public TargetingService(int slotCount, TeamLayout teams = default)
         {
             int count = slotCount > 0 ? slotCount : PlayerSlots.MaxSupported;
+            _teams = teams;
             _bySlot = new List<ICombatTarget>[count];
             for (int i = 0; i < count; i++)
                 _bySlot[i] = new List<ICombatTarget>(32);
         }
+
+        /// <summary>Кто кому враг в этом матче. Системы спрашивают здесь, а не считают по номерам слотов.</summary>
+        public TeamLayout Teams => _teams;
 
         public void Register(ICombatTarget target)
         {
@@ -73,7 +83,8 @@ namespace Warlord.Gameplay.Combat
 
             for (int slot = 0; slot < _bySlot.Length; slot++)
             {
-                if (slot == mySlot)
+                // Пропускаем всю свою сторону, а не только свой слот: союзник — не цель.
+                if (!_teams.AreEnemies(slot, mySlot))
                     continue;
 
                 List<ICombatTarget> bucket = _bySlot[slot];
@@ -121,7 +132,8 @@ namespace Warlord.Gameplay.Combat
 
             for (int slot = 0; slot < _bySlot.Length; slot++)
             {
-                if (slot == mySlot)
+                // Пропускаем всю свою сторону, а не только свой слот: союзник — не цель.
+                if (!_teams.AreEnemies(slot, mySlot))
                     continue;
 
                 List<ICombatTarget> bucket = _bySlot[slot];

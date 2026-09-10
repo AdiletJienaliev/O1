@@ -13,10 +13,16 @@ namespace Warlord.Domain.Capture
     public sealed class CaptureLogic
     {
         private readonly CapturePointConfig _config;
+        private readonly TeamLayout _teams;
 
-        public CaptureLogic(CapturePointConfig config, int initialOwnerSlot)
+        /// <param name="teams">
+        /// Раскладка команд. Точка различает не слоты, а стороны: союзник добивает шкалу
+        /// владельца вместо того, чтобы её замораживать, и держит точку вместе с ним.
+        /// </param>
+        public CaptureLogic(CapturePointConfig config, int initialOwnerSlot, TeamLayout teams = default)
         {
             _config = config;
+            _teams = teams;
             OwnerSlot = initialOwnerSlot;
             OwnerProgress = PlayerSlots.IsValid(initialOwnerSlot) ? 1f : 0f;
             ChallengerSlot = PlayerSlots.None;
@@ -57,25 +63,25 @@ namespace Warlord.Domain.Capture
         /// </param>
         public void Tick(float deltaTime, CaptureOccupancy occupancy, bool ownerHasGarrison = true)
         {
-            // 1. Двое и более разных игроков в зоне — всё заморожено (ГДД §9.2).
-            if (occupancy.DistinctSlots >= 2)
+            // 1. Две и более враждебных стороны в зоне — всё заморожено (ГДД §9.2).
+            if (occupancy.DistinctSides >= 2)
             {
                 Status = CaptureStatus.Contested;
                 return;
             }
 
             // 2. В зоне никого — работает только спад.
-            if (occupancy.DistinctSlots == 0)
+            if (occupancy.DistinctSides == 0)
             {
                 TickUnoccupied(deltaTime, ownerHasGarrison);
                 return;
             }
 
             int slot = occupancy.SoleSlot;
-            float stack = StackMultiplier(occupancy.CountFor(slot));
+            float stack = StackMultiplier(occupancy.CountForSide(slot));
 
             // 3a. Чужой полководец сбивает шкалу владельца.
-            if (PlayerSlots.IsValid(OwnerSlot) && OwnerSlot != slot)
+            if (PlayerSlots.IsValid(OwnerSlot) && !_teams.SameSide(OwnerSlot, slot))
             {
                 Status = CaptureStatus.Losing;
                 OwnerProgress -= _config.decaptureRatePerSecond * stack * deltaTime;
@@ -93,8 +99,8 @@ namespace Warlord.Domain.Capture
                 return;
             }
 
-            // 3b. Владелец стоит на своей точке — добивает шкалу обратно до полной.
-            if (OwnerSlot == slot)
+            // 3b. Владелец или его союзник стоит на точке — шкала добивается обратно до полной.
+            if (_teams.SameSide(OwnerSlot, slot))
             {
                 OwnerProgress = Mathf.Min(1f, OwnerProgress + _config.captureRatePerSecond * stack * deltaTime);
                 ResetChallenger();

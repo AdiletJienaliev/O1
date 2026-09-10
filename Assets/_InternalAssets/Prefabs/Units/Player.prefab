@@ -121,6 +121,7 @@ GameObject:
   - component: {fileID: 2937812444962958883}
   - component: {fileID: 2502393414897911571}
   - component: {fileID: 291608215623742425}
+  - component: {fileID: 7628332205207070293}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -394,6 +395,20 @@ MonoBehaviour:
   - _Color
   - _TeamColor
   strength: 0.35
+--- !u!114 &7628332205207070293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2420842358163579246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8556f3c0c8a2964c957374a3cd080de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Presentation.Vfx.CombatVfx
+  library: {fileID: 11400000, guid: db53794752397ce45a7ce09c31e93c36, type: 2}
+  healthSource: {fileID: 0}
 --- !u!1 &5648156213892347206
 GameObject:
   m_ObjectHideFlags: 0

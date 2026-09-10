@@ -56,9 +56,9 @@ namespace Warlord.Gameplay.Capture
 
             for (int i = 0; i < _buffer.Count; i++)
             {
-                // Лечим только своих: кузница держит фронт владельца, а не чинит тех,
-                // кто пришёл её отбивать.
-                if (_buffer[i].OwnerSlot != point.OwnerSlot)
+                // Лечим только свою сторону: кузница держит фронт владельца и его союзников,
+                // а не чинит тех, кто пришёл её отбивать.
+                if (!_context.Teams.SameSide(_buffer[i].OwnerSlot, point.OwnerSlot))
                     continue;
 
                 if (_buffer[i] is UnitEntity unit)

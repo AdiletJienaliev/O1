@@ -3,6 +3,7 @@ using FishNet.Object;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Warlord.Core;
 using Warlord.EditorTools.UI;
 using Warlord.Gameplay.Capture;
 using Warlord.Gameplay.World;

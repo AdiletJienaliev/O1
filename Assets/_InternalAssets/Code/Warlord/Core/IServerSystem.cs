@@ -30,6 +30,14 @@ namespace Warlord.Core
         public const int MatchClock = 0;
         public const int Capture = 100;
         public const int Economy = 200;
+
+        /// <summary>
+        /// Решения ботов. Стоят после экономики и до очереди постройки: бот принимает решение
+        /// с уже начисленным золотом, и его покупка попадает в очередь этим же тактом —
+        /// ровно как нажатие живого игрока, пришедшее между двумя тактами.
+        /// </summary>
+        public const int Bots = 250;
+
         public const int SpawnQueue = 300;
 
         /// <summary>Кого бьёт армия целиком. Считается до строя: приказ может смениться сам.</summary>

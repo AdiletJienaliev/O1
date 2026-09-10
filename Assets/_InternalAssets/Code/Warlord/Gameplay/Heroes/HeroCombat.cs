@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FishNet.Connection;
 using FishNet.Object;
 using UnityEngine;
@@ -29,6 +29,7 @@ namespace Warlord.Gameplay.Heroes
 
         private float _serverCooldown;
         private float _localCooldown;
+        private bool _botDriven;
 
         /// <summary>Оставшийся кулдаун для HUD. На владельце считается локально, без ожидания сервера.</summary>
         public float CooldownRemaining => _localCooldown;
@@ -80,12 +81,66 @@ namespace Warlord.Gameplay.Heroes
             AttackPerformed?.Invoke();
         }
 
-        /// <summary>Серверный отсчёт кулдауна. Вызывается из боевого такта.</summary>
+        /// <summary>
+        /// Серверный отсчёт кулдауна и удар бота. Вызывается из боевого такта.
+        /// У бота нет ни клиента, ни Update-ветки владельца, поэтому его нажатие
+        /// считывается здесь — в том же такте, что и весь остальной бой.
+        /// </summary>
         public void ServerTick(float deltaTime)
         {
             if (_serverCooldown > 0f)
                 _serverCooldown -= deltaTime;
+
+            if (!_botDriven || _input == null)
+                return;
+
+            if (_input.ConsumeAttack())
+                ServerTryAttack();
         }
+
+        /// <summary>
+        /// Отдать удар боту. Кулдаун и дальность у него общие с игроком — меняется только
+        /// то, откуда пришло нажатие.
+        /// </summary>
+        public void ServerAttachBot(IHeroInputSource botInput)
+        {
+            if (botInput == null)
+                return;
+
+            if (inputSource != null)
+                inputSource.enabled = false;
+
+            _input = botInput;
+            _botDriven = true;
+        }
+
+        /// <summary>
+        /// Удар полководца-бота. Перемотки нет и быть не может: бот живёт на сервере
+        /// и бьёт ровно по тому миру, который сервер видит сейчас — никакого пинга,
+        /// который надо было бы компенсировать, у него нет.
+        /// </summary>
+        public bool ServerTryAttack()
+        {
+            if (_context == null || _config == null)
+                return false;
+
+            if (_context.Phase != MatchPhase.Running || hero == null || !hero.IsAlive)
+                return false;
+
+            if (_serverCooldown > 0f)
+                return false;
+
+            _serverCooldown = _config.attackCooldown;
+            ApplyMeleeHit(0f);
+
+            // Замах разошлётся наблюдателям тем же путём, что и у живого игрока.
+            // Отдельно поднимать событие здесь нельзя: на хосте оно пришло бы дважды.
+            ObserversPlayAttack();
+            return true;
+        }
+
+        /// <summary>Готов ли удар. Бот смотрит на это, чтобы не подходить вплотную впустую.</summary>
+        public bool ServerAttackReady => _serverCooldown <= 0f;
 
         [ServerRpc]
         private void CmdAttack(uint clientTick, NetworkConnection sender = null)
@@ -138,7 +193,7 @@ namespace Warlord.Gameplay.Heroes
                 ICombatTarget candidate = _candidates[i];
                 if (!candidate.IsAliveTarget() || ReferenceEquals(candidate, hero))
                     continue;
-                if (!PlayerSlots.AreEnemies(candidate.OwnerSlot, hero.OwnerSlot))
+                if (!_context.Teams.AreEnemies(candidate.OwnerSlot, hero.OwnerSlot))
                     continue;
 
                 Vector3 targetPosition = _context.LagCompensation.GetPositionAt(candidate, sampleTime);

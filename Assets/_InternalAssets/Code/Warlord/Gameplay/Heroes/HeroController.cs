@@ -48,6 +48,7 @@ namespace Warlord.Gameplay.Heroes
         private float _respawnTimer;
         private float _timeSinceDamage;
         private float _spawnProtectionTimer;
+        private bool _botDriven;
 
         public int Slot => _slot.Value;
         public bool IsSpectator => _spectator.Value;
@@ -58,6 +59,9 @@ namespace Warlord.Gameplay.Heroes
 
         public float RespawnTimeRemaining => _respawnTimer;
         public bool IsInvulnerable => _spawnProtectionTimer > 0f;
+
+        /// <summary>Телом управляет бот на сервере, а не клиент-владелец.</summary>
+        public bool IsBotDriven => _botDriven;
 
         #region ICombatTarget
 
@@ -165,7 +169,11 @@ namespace Warlord.Gameplay.Heroes
 
             // Тело двигает только владелец. У всех остальных — и на сервере тоже —
             // трансформ приходит по сети, и трогать его здесь нельзя.
-            if (IsOwner)
+            //
+            // Исключение — полководец бота: владельца у него нет вовсе, и тело ведёт сервер.
+            // NetworkTransform это учитывает сам: при client authoritative без владельца
+            // авторитетной становится серверная копия, и позиция уезжает клиентам от неё.
+            if (IsOwner || (_botDriven && IsServerInitialized))
                 TickMovement(delta);
 
             TickAnimation(delta);
@@ -210,7 +218,16 @@ namespace Warlord.Gameplay.Heroes
 
             _animation.SetAlive(IsAlive);
 
-            if (!IsOwner)
+            if (!IsOwner && !_botDriven)
+            {
+                _animation.SetGrounded(true);
+                _animation.TickFromTransform(delta);
+                return;
+            }
+
+            // На клиентах полководец бота — обычный чужой объект: скорость там восстанавливается
+            // из смещения трансформа, а мотор пуст и врал бы нулём.
+            if (_botDriven && !IsServerInitialized)
             {
                 _animation.SetGrounded(true);
                 _animation.TickFromTransform(delta);
@@ -234,6 +251,26 @@ namespace Warlord.Gameplay.Heroes
             _config = config;
             _motor.Configure(config);
             _animation.SetReferenceSpeed(_motor.MaxSpeed);
+        }
+
+        /// <summary>
+        /// Отдать управление телом боту (сервер). Источник ввода подменяется целиком:
+        /// клавиатурный компонент на префабе выключается, иначе на хосте полководец бота
+        /// повторял бы нажатия живого игрока — они читаются глобально, а не по владению.
+        /// </summary>
+        public void ServerAttachBot(IHeroInputSource botInput)
+        {
+            if (botInput == null)
+                return;
+
+            if (inputSource != null)
+                inputSource.enabled = false;
+
+            _input = botInput;
+            _botDriven = true;
+
+            if (combat != null)
+                combat.ServerAttachBot(botInput);
         }
 
         public void ReceiveDamage(int amount, ICombatTarget source)
@@ -313,6 +350,15 @@ namespace Warlord.Gameplay.Heroes
             characterController.enabled = false;
             transform.position = position;
             characterController.enabled = true;
+
+            // У бота тело ведёт сам сервер, поэтому сбрасывать скорости надо здесь же:
+            // приказа владельцу, который это сделал бы, слать некому.
+            if (_botDriven)
+            {
+                _motor.Teleport(position);
+                _animation.ResetMotion();
+                return;
+            }
 
             if (Owner != null && Owner.IsActive)
                 TargetTeleport(Owner, position);

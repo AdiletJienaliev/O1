@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Warlord.Configs;
+using Warlord.Configs.Bots;
 using Warlord.Core;
 using Warlord.Domain.Match;
 using Warlord.Gameplay.Match;
@@ -43,6 +44,14 @@ namespace Warlord.UI.Screens
         [SerializeField] private Slider startingGoldSlider;
         [SerializeField] private TextMeshProUGUI startingGoldLabel;
 
+        [Header("Боты")]
+        [Tooltip("Сажает ботов во все свободные слоты. Виден только хосту.")]
+        [SerializeField] private Button fillBotsButton;
+
+        [Tooltip("Сложность, с которой садятся новые боты. Каждому потом можно сменить её в его строке.")]
+        [SerializeField] private Button botDifficultyButton;
+        [SerializeField] private TextMeshProUGUI botDifficultyLabel;
+
         [Header("Заголовок")]
         [SerializeField] private TextMeshProUGUI mapLabel;
 
@@ -63,6 +72,13 @@ namespace Warlord.UI.Screens
         private bool _localReady;
         private bool _settingsBound;
 
+        /// <summary>
+        /// С какой сложностью садится следующий бот. Дальше её крутит кнопка в самой строке —
+        /// это лишь значение по умолчанию, чтобы набрать комнату одинаковых противников
+        /// в четыре клика, а не в восемь.
+        /// </summary>
+        private BotDifficulty _newBotDifficulty = BotDifficulty.Normal;
+
         protected override void Awake()
         {
             base.Awake();
@@ -78,6 +94,23 @@ namespace Warlord.UI.Screens
 
             if (inviteButton != null)
                 inviteButton.onClick.AddListener(InviteFriends);
+
+            if (fillBotsButton != null)
+                fillBotsButton.onClick.AddListener(FillWithBots);
+
+            if (botDifficultyButton != null)
+                botDifficultyButton.onClick.AddListener(CycleNewBotDifficulty);
+        }
+
+        private bool HasEmptySlot()
+        {
+            for (int i = 0; i < _lobby.Slots.Count; i++)
+            {
+                if (!_lobby.Slots[i].Occupied)
+                    return true;
+            }
+
+            return false;
         }
 
         private void Update()
@@ -115,7 +148,10 @@ namespace Warlord.UI.Screens
 
             if (inviteButton != null)
             {
-                inviteButton.gameObject.SetActive(platform.IsReady);
+                // Кнопку показывает сам режим, а не готовность Steam: пока тот поднимается,
+                // она должна стоять серой на своём месте, а не появляться из ниоткуда.
+                bool steam = _bootstrap != null && _bootstrap.UsesSteam;
+                inviteButton.gameObject.SetActive(steam || platform.IsReady);
                 inviteButton.interactable = platform.CanInvite;
             }
 
@@ -145,25 +181,56 @@ namespace Warlord.UI.Screens
         private void RefreshSlots()
         {
             int localClientId = LocalClientId();
-            int hostClientId = 0;
+            const int HostClientId = 0;
+
+            bool localIsHost = InstanceFinder.IsHostStarted;
+            bool botsAvailable = _lobby.BotsAvailable;
 
             for (int i = 0; i < _slotViews.Count; i++)
             {
                 bool exists = i < _lobby.Slots.Count;
-                LobbySlotInfo info = exists ? _lobby.Slots[i] : default;
+                LobbySlotInfo info = exists ? _lobby.Slots[i] : LobbySlotInfo.Empty(i);
 
-                bool isLocal = exists && info.Occupied && info.ClientId == localClientId;
+                bool isLocal = info.IsHuman && info.ClientId == localClientId;
                 if (isLocal)
                     _localReady = info.Ready;
 
-                _slotViews[i].Apply(
-                    i,
-                    exists && info.Occupied,
-                    info.Ready,
-                    isLocal,
-                    exists && info.Occupied && info.ClientId == hostClientId,
-                    TeamPalette.Primary(TeamColors(), info.ColorId));
+                _slotViews[i].Apply(new LobbySlotView.Data
+                {
+                    Index = i,
+                    Info = info,
+                    IsLocal = isLocal,
+                    IsHostSlot = info.IsHuman && info.ClientId == HostClientId,
+                    LocalIsHost = localIsHost,
+                    BotsAvailable = botsAvailable,
+                    TeamColor = TeamPalette.Primary(TeamColors(), info.ColorId),
+                    DisplayName = ResolveName(in info, i, isLocal),
+                    PersonalityName = ResolvePersonality(in info)
+                });
             }
+        }
+
+        /// <summary>Как зовётся сидящий в слоте. Имя бота выводится из набора — по сети оно не едет.</summary>
+        private string ResolveName(in LobbySlotInfo info, int index, bool isLocal)
+        {
+            if (info.IsBot)
+            {
+                BotSetConfig set = _lobby.BotSet;
+                return set != null ? set.ResolveName(info.BotPersonality, info.BotNameIndex) : "Бот";
+            }
+
+            if (!info.Occupied)
+                return "Свободно";
+
+            return isLocal ? UiText.PlayerName(index) + " (вы)" : UiText.PlayerName(index);
+        }
+
+        private string ResolvePersonality(in LobbySlotInfo info)
+        {
+            BotSetConfig set = _lobby.BotSet;
+            BotPersonalityConfig personality = set != null ? set.Get(info.BotPersonality) : null;
+
+            return personality != null ? personality.displayName : "Характер";
         }
 
         private void RefreshControls()
@@ -189,12 +256,27 @@ namespace Warlord.UI.Screens
                 startHintLabel.text = "Ждём готовности всех игроков";
             }
 
+            bool botsAvailable = _lobby.BotsAvailable;
+
+            if (fillBotsButton != null)
+            {
+                fillBotsButton.gameObject.SetActive(isHost && botsAvailable);
+                fillBotsButton.interactable = HasEmptySlot();
+            }
+
+            if (botDifficultyButton != null)
+                botDifficultyButton.gameObject.SetActive(isHost && botsAvailable);
+
+            if (botDifficultyLabel != null)
+                botDifficultyLabel.text = "НОВЫЕ БОТЫ: " + UiText.Difficulty(_newBotDifficulty).ToUpperInvariant();
+
             if (mapLabel == null || _match == null || _match.Config == null)
                 return;
 
             mapLabel.text = MatchArena.Title;
         }
 
+        /// <summary>Готовность ждём только от живых: бот готов всегда, ему нечего нажимать.</summary>
         private bool AllOccupiedReady(out int occupied)
         {
             occupied = 0;
@@ -207,11 +289,32 @@ namespace Warlord.UI.Screens
                     continue;
 
                 occupied++;
-                if (!info.Ready)
+
+                if (info.IsHuman && !info.Ready)
                     allReady = false;
             }
 
             return allReady;
+        }
+
+        /// <summary>Посадить ботов во все пустые слоты — самый частый способ начать игру одному.</summary>
+        private void FillWithBots()
+        {
+            if (_lobby == null || !_lobby.BotsAvailable)
+                return;
+
+            for (int i = 0; i < _lobby.Slots.Count; i++)
+            {
+                if (!_lobby.Slots[i].Occupied)
+                    _lobby.CmdAddBot((byte)i, (byte)_newBotDifficulty);
+            }
+        }
+
+        /// <summary>Сложность, с которой садятся следующие боты. Перебирается по кругу.</summary>
+        private void CycleNewBotDifficulty()
+        {
+            int next = ((int)_newBotDifficulty + 1) % ((int)BotDifficulty.Brutal + 1);
+            _newBotDifficulty = (BotDifficulty)next;
         }
 
         private void BuildSlots()
@@ -230,8 +333,35 @@ namespace Warlord.UI.Screens
                 LobbySlotView view = Instantiate(slotTemplate, slotContainer);
                 view.gameObject.SetActive(true);
                 view.name = "LobbySlot_" + i;
+
+                BindSlotButtons(view, i);
                 _slotViews.Add(view);
             }
+        }
+
+        /// <summary>
+        /// Кнопки строки привязываются один раз при создании: подписка из Update
+        /// накопила бы обработчики и слала бы на сервер по команде за кадр.
+        /// Сложность нового бота берётся из ползунка комнаты, дальше её крутит сама строка.
+        /// </summary>
+        private void BindSlotButtons(LobbySlotView view, int index)
+        {
+            byte slot = (byte)index;
+
+            if (view.AddBotButton != null)
+                view.AddBotButton.onClick.AddListener(() => _lobby?.CmdAddBot(slot, (byte)_newBotDifficulty));
+
+            if (view.RemoveBotButton != null)
+                view.RemoveBotButton.onClick.AddListener(() => _lobby?.CmdRemoveBot(slot));
+
+            if (view.PersonalityButton != null)
+                view.PersonalityButton.onClick.AddListener(() => _lobby?.CmdCycleBotPersonality(slot));
+
+            if (view.DifficultyButton != null)
+                view.DifficultyButton.onClick.AddListener(() => _lobby?.CmdCycleBotDifficulty(slot));
+
+            if (view.TeamButton != null)
+                view.TeamButton.onClick.AddListener(() => _lobby?.CmdCycleTeam(slot));
         }
 
         private void BuildColors()

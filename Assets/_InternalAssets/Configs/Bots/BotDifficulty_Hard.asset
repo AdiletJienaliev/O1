@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f181be132e886a4e88c5e9a1029d694, type: 3}
+  m_Name: BotDifficulty_Hard
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Configs.Bots.BotDifficultyConfig
+  displayName: "\u0421\u043B\u043E\u0436\u043D\u044B\u0439"
+  level: 2
+  decisionInterval: 0.5
+  reactionDelay: 0.3
+  actionsPerMinute: 110
+  vision: 1
+  visionBonus: 6
+  memorySeconds: 30
+  micro: 0.75
+  mistakeChance: 0.12
+  economySkill: 0.8
+  upgradeSkill: 0.85
+  retreatHealthFraction: 0.4
+  incomeMultiplier: 1
+  costMultiplier: 1

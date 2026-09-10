@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Warlord.Configs;
+using Warlord.Core;
 
 namespace Warlord.Domain.Match
 {
@@ -17,6 +18,16 @@ namespace Warlord.Domain.Match
         public float IncomeMultiplier;
         public float CostMultiplier;
         public byte MapIndex;
+
+        /// <summary>
+        /// Раскладка команд, упакованная в четыре байта. Полем, а не структурой:
+        /// сериализатор сети берёт публичные поля, и прятать раскладку внутрь
+        /// значило бы оставить клиента без неё. Читать — через <see cref="Teams"/>.
+        /// </summary>
+        public uint TeamPacking;
+
+        /// <summary>Кто с кем в команде. Пустая упаковка — обычный FFA (ГДД §2).</summary>
+        public TeamLayout Teams => new(TeamPacking);
 
         public static MatchSettings FromConfig(GameModeConfig mode)
         {

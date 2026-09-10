@@ -1,4 +1,4 @@
-﻿using FishNet.Object;
+using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Transporting;
 using UnityEngine;
@@ -94,6 +94,12 @@ namespace Warlord.Gameplay.Units
             }
         }
 
+        /// <summary>
+        /// Кто кому враг в этом матче. На клиенте контекста нет, и там это обычный FFA:
+        /// клиент боевых решений не принимает, а спросить раскладку может любой код.
+        /// </summary>
+        private TeamLayout Teams => _context != null ? _context.Teams : TeamLayout.Ffa;
+
         #region ICombatTarget
 
         public int OwnerSlot => _ownerSlot.Value;
@@ -129,7 +135,7 @@ namespace Warlord.Gameplay.Units
             if (!IsServerInitialized || !IsAlive)
                 return;
 
-            if (attacker.Exists() && PlayerSlots.AreEnemies(attacker.OwnerSlot, OwnerSlot))
+            if (attacker.Exists() && Teams.AreEnemies(attacker.OwnerSlot, OwnerSlot))
             {
                 _lastAttacker = attacker;
                 _retaliationTimer = _context != null ? _context.Config.Command.retaliationMemory : 3f;
@@ -339,7 +345,7 @@ namespace Warlord.Gameplay.Units
             _health.Value = Mathf.Max(0, _health.Value - amount);
             _timeSinceCombat = 0f;
 
-            if (source.Exists() && PlayerSlots.AreEnemies(source.OwnerSlot, OwnerSlot))
+            if (source.Exists() && Teams.AreEnemies(source.OwnerSlot, OwnerSlot))
             {
                 _lastAttacker = source;
                 _retaliationTimer = _context != null ? _context.Config.Command.retaliationMemory : 3f;

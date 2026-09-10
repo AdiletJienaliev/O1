@@ -108,16 +108,21 @@ namespace Warlord.Gameplay.Match
             TeardownMatch();
         }
 
-        /// <summary>Старт матча с настройками комнаты. Вызывается лобби на сервере.</summary>
-        public void ServerStartMatch(in MatchSettings requestedSettings)
+        /// <summary>
+        /// Старт матча с настройками комнаты и стартовым составом. Вызывается лобби на сервере.
+        /// Состав нужен здесь, а не позже: по нему выдаются слоты и создаются боты,
+        /// а слоты обязаны быть закреплены до того, как появится первый объект игрока.
+        /// </summary>
+        public void ServerStartMatch(in MatchSettings requestedSettings, MatchRoster roster = null)
         {
             if (!IsServerInitialized || Phase == MatchPhase.Running)
                 return;
 
             MatchSettings sanitized = requestedSettings.Sanitized(config.GameMode);
+            sanitized = ApplyRoster(sanitized, roster);
             _settings.Value = sanitized;
 
-            BuildMatch(in sanitized);
+            BuildMatch(in sanitized, roster);
             _clock.Reset();
 
             // Обратный отсчёт нужен, чтобы игроки успели загрузиться и увидеть карту
@@ -131,6 +136,32 @@ namespace Warlord.Gameplay.Match
                 SetPhase(MatchPhase.Countdown);
             else
                 BeginRunning();
+        }
+
+        /// <summary>
+        /// Довести настройки до состава: раскладка команд едет клиентам внутри настроек,
+        /// а число слотов поднимается до самого дальнего занятого. Иначе бот в четвёртом
+        /// слоте при SlotCount = 2 просто не поместился бы в массивы матча.
+        /// </summary>
+        private MatchSettings ApplyRoster(MatchSettings settings, MatchRoster roster)
+        {
+            if (roster == null)
+                return settings;
+
+            settings.TeamPacking = roster.BuildTeamLayout().Packed;
+
+            int highest = 0;
+
+            for (int i = 0; i < roster.SlotCount; i++)
+            {
+                if (roster.Get(i).IsOccupied)
+                    highest = i + 1;
+            }
+
+            if (highest > settings.SlotCount)
+                settings.SlotCount = (byte)highest;
+
+            return settings;
         }
 
         private void BeginRunning()

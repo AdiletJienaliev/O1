@@ -60,7 +60,12 @@ namespace Warlord.Networking.Steam
 
         public int MemberCount => _inLobby ? _lobby.MemberCount : 0;
 
-        public bool CanInvite => _inLobby && IsReady;
+        /// <summary>
+        /// Достаточно живого Steam: комнаты может ещё не быть, но её заведёт само нажатие.
+        /// Иначе кнопка стояла бы серой всё время между запуском и созданием лобби —
+        /// и навсегда, если хост не поднимался.
+        /// </summary>
+        public bool CanInvite => IsReady;
 
         public event Action<string> HostAddressReceived;
 
@@ -129,6 +134,8 @@ namespace Warlord.Networking.Steam
                 return;
             }
 
+            _maxMembers = Mathf.Max(1, maxMembers);
+
             // Приняли приглашение, а потом решили хостить сами: из чужой комнаты надо выйти,
             // иначе друзья будут звать нас туда, где сервера уже нет.
             LeaveLobby();
@@ -136,7 +143,7 @@ namespace Warlord.Networking.Steam
             Status = "Создаём лобби...";
             Changed?.Invoke();
 
-            LobbyData.Create(Visibility(), Mathf.Max(1, maxMembers), OnLobbyCreated);
+            LobbyData.Create(Visibility(), _maxMembers, OnLobbyCreated);
         }
 
         public void LeaveLobby()
@@ -158,9 +165,19 @@ namespace Warlord.Networking.Steam
 
         public void OpenInviteOverlay()
         {
-            if (!CanInvite)
+            if (!IsReady)
             {
-                Debug.LogWarning("SteamSession: приглашать некуда — лобби ещё нет", this);
+                Debug.LogWarning("SteamSession: Steam ещё не готов — звать друзей нечем", this);
+                return;
+            }
+
+            // Комнаты может не быть: создание идёт асинхронно, а игрок мог и вовсе нажать
+            // «пригласить» раньше, чем поднял хост. Заводим её здесь же и открываем оверлей
+            // по готовности — для игрока это одно нажатие, а не «нажми ещё раз».
+            if (!_inLobby)
+            {
+                _inviteAfterCreate = true;
+                HostLobby(_maxMembers);
                 return;
             }
 
@@ -190,7 +207,9 @@ namespace Warlord.Networking.Steam
         /// </summary>
         public void Invite(UserData user)
         {
-            if (!CanInvite || !user.IsValid)
+            // Здесь, в отличие от оверлея, лобби обязано уже быть: виджет зовёт конкретного
+            // человека, и ждать создания комнаты, держа его выбор, было бы неоткуда.
+            if (!IsReady || !_inLobby || !user.IsValid)
                 return;
 
             API.Matchmaking.Client.InviteUserToLobby(_lobby, user);
@@ -270,6 +289,9 @@ namespace Warlord.Networking.Steam
 
         private void OnLobbyCreated(EResult result, LobbyData lobby, bool ioError)
         {
+            bool inviteRequested = _inviteAfterCreate;
+            _inviteAfterCreate = false;
+
             if (ioError || result != EResult.k_EResultOK)
             {
                 Status = "Не удалось создать лобби: " + result;
@@ -293,6 +315,9 @@ namespace Warlord.Networking.Steam
 
             Status = "Лобби готово — зовите друзей";
             Changed?.Invoke();
+
+            if (inviteRequested)
+                API.Overlay.Client.ActivateInviteDialog(_lobby);
         }
 
         /// <summary>Друг принял приглашение или нажал «Присоединиться» в списке друзей.</summary>

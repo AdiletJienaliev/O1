@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Warlord.Runtime::Warlord.Configs.GameFlowConfig
   skipLobby: 0
   autoStartHost: 0
-  backend: 1
+  backend: 0
   address: 127.0.0.1
   port: 7770
   lobbyVisibility: 1

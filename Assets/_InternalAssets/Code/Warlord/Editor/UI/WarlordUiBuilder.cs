@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -52,6 +53,7 @@ namespace Warlord.EditorTools.UI
             };
 
             GameObject root = BuildRoot(templates);
+            StripTextSubMeshes(root);
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, RootPrefabPath);
             Object.DestroyImmediate(root);
 
@@ -131,11 +133,39 @@ namespace Warlord.EditorTools.UI
             return instance.GetComponent<T>();
         }
 
+        /// <summary>
+        /// Убирает подмеши TextMeshPro перед сохранением префаба.
+        ///
+        /// TMP создаёт объекты «TMP SubMeshUI …» сам, когда символа нет в основном шрифте
+        /// и он берётся из запасного. Это рантайм-кухня: запечённые в префаб, они
+        /// приезжают на сцену с уже мёртвой ссылкой на материал и дают NullReferenceException
+        /// в TMP_SubMeshUI.UpdateMaterial при первом же показе экрана. На следующем кадре
+        /// TMP всё равно создаст их заново — правильные.
+        /// </summary>
+        private static void StripTextSubMeshes(GameObject root)
+        {
+            var doomed = new List<GameObject>();
+
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child != null && child.name.StartsWith("TMP SubMesh", System.StringComparison.Ordinal))
+                    doomed.Add(child.gameObject);
+            }
+
+            foreach (GameObject go in doomed)
+                Object.DestroyImmediate(go);
+        }
+
         private static Canvas CreateCanvas(GameObject go)
         {
             Canvas canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 50;
+
+            // Overlay-канвас не освещается, поэтому нормали и касательные в вершинах — мёртвый
+            // вес на каждой вершине HUD; Unity сама предупреждает об этом в инспекторе.
+            // TexCoord1 оставляем: на нём TextMeshPro держит данные для сглаживания шрифта.
+            canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.TexCoord1;
 
             CanvasScaler scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;

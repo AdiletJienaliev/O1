@@ -356,7 +356,7 @@ namespace Warlord.EditorTools.UI
         public static GameObject LobbySlot()
         {
             RectTransform root = Ui.Node("UI_LobbySlot", null);
-            root.sizeDelta = new Vector2(600f, 78f);
+            root.sizeDelta = new Vector2(LobbyColumns.SlotWidth, 78f);
             Image background = root.Sprite(Kit.ListRow, Color.white);
 
             RectTransform indexPill = Ui.Node("IndexPill", root).At(Ui.Left, new Vector2(18f, 0f), new Vector2(44f, 44f));
@@ -365,24 +365,39 @@ namespace Warlord.EditorTools.UI
             TextMeshProUGUI index = Ui.Label("Text", indexPill, "1", 22f, Ui.Ink, TextAlignmentOptions.Center, Kit.FontNumbers);
             index.rectTransform.Stretch();
 
-            TextMeshProUGUI name = Ui.Label("Name", root, "Свободно", 24f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
-            name.rectTransform.At(Ui.Left, new Vector2(76f, 0f), new Vector2(240f, 30f));
-
+            // Дальше вся строка размечена краями, а не центрами: у якорей Ui.Left и Ui.Right
+            // пивот стоит на соответствующем крае, и заданное смещение — это положение самого
+            // края элемента. Считать здесь центрами значит незаметно наложить кнопки друг
+            // на друга ровно на половину их ширины.
             Image swatch = Ui.Icon("Swatch", root, Kit.CircleSmall, new Vector2(16f, 16f));
-            swatch.rectTransform.At(Ui.Left, new Vector2(330f, 0f), new Vector2(32f, 32f));
+            swatch.rectTransform.At(Ui.Left, new Vector2(70f, 0f), new Vector2(26f, 26f));
 
-            RectTransform readyTag = Ui.Node("ReadyBadge", root).At(Ui.Right, new Vector2(-20f, 0f), new Vector2(126f, 44f));
+            TextMeshProUGUI name = Ui.Label("Name", root, "Свободно", 23f, Ui.Ink, TextAlignmentOptions.Left, Kit.FontTitle);
+            name.rectTransform.At(Ui.Left, new Vector2(106f, 0f), new Vector2(160f, 30f));
+            name.overflowMode = TextOverflowModes.Ellipsis;
+
+            // Управление составом идёт от правого края влево: убрать — сложность —
+            // характер — команда. Между блоками оставлено по десятку пикселей,
+            // чтобы длинная подпись характера упиралась в свою рамку, а не в соседа.
+            Button remove = RowButton("RemoveBot", root, Kit.ButtonRed, "✕", -22f, 48f, 22f, out _);
+            Button difficulty = RowButton("Difficulty", root, Kit.ButtonNavy, "Обычный", -82f, 106f, 17f, out TextMeshProUGUI difficultyLabel);
+            Button personality = RowButton("Personality", root, Kit.ButtonBlue, "Характер", -200f, 144f, 17f, out TextMeshProUGUI personalityLabel);
+            Button team = RowButton("Team", root, Kit.ButtonGray, "—", -352f, 44f, 20f, out TextMeshProUGUI teamLabel);
+
+            Button addBot = RowButton("AddBot", root, Kit.ButtonGreen, "+ БОТ", -22f, 122f, 20f, out _);
+
+            RectTransform readyTag = Ui.Node("ReadyBadge", root).At(Ui.Right, new Vector2(-22f, 0f), new Vector2(126f, 44f));
             readyTag.Sprite(Kit.TagGreen, Color.white);
             Ui.Label("Text", readyTag, "ГОТОВ", 20f, Color.white, TextAlignmentOptions.Center, Kit.FontTitle)
                 .rectTransform.Stretch();
             readyTag.gameObject.SetActive(false);
 
             Image hostBadge = Ui.Icon("HostBadge", root, Kit.IconCrown, new Vector2(14f, 14f), Ui.Gold);
-            hostBadge.rectTransform.At(Ui.Right, new Vector2(-160f, 0f), new Vector2(28f, 28f));
+            hostBadge.rectTransform.At(Ui.Right, new Vector2(-166f, 0f), new Vector2(28f, 28f));
             hostBadge.gameObject.SetActive(false);
 
             TextMeshProUGUI emptyHint = Ui.Label("EmptyHint", root, "ожидание игрока", 18f, Ui.InkMuted, TextAlignmentOptions.Right);
-            emptyHint.rectTransform.At(Ui.Right, new Vector2(-24f, 0f), new Vector2(220f, 24f));
+            emptyHint.rectTransform.At(Ui.Right, new Vector2(-22f, 0f), new Vector2(220f, 24f));
 
             LobbySlotView view = root.gameObject.AddComponent<LobbySlotView>();
 
@@ -394,10 +409,44 @@ namespace Warlord.EditorTools.UI
                     .Ref("background", background)
                     .Ref("readyBadge", readyTag.gameObject)
                     .Ref("hostBadge", hostBadge.gameObject)
-                    .Ref("emptyHint", emptyHint.gameObject);
+                    .Ref("emptyHint", emptyHint.gameObject)
+                    .Ref("addBotButton", addBot)
+                    .Ref("removeBotButton", remove)
+                    .Ref("personalityButton", personality)
+                    .Ref("personalityLabel", personalityLabel)
+                    .Ref("difficultyButton", difficulty)
+                    .Ref("difficultyLabel", difficultyLabel)
+                    .Ref("teamButton", team)
+                    .Ref("teamLabel", teamLabel);
             }
 
             return root.gameObject;
+        }
+
+        /// <summary>Кнопка в строке лобби: одинаковая высота, подпись по центру, якорь справа.</summary>
+        private static Button RowButton(
+            string name,
+            RectTransform parent,
+            Sprite sprite,
+            string caption,
+            float offsetFromRight,
+            float width,
+            float fontSize,
+            out TextMeshProUGUI label)
+        {
+            Button button = Ui.Button(name, parent, sprite, Color.white, out _);
+            button.GetComponent<RectTransform>().At(Ui.Right, new Vector2(offsetFromRight, 0f), new Vector2(width, 42f));
+
+            label = Ui.Label("Text", button.transform, caption, fontSize, Color.white, TextAlignmentOptions.Center, Kit.FontTitle);
+            label.rectTransform.Stretch(6f, 0f, 6f, 0f);
+
+            // Подписи характеров задаются в ассетах и заранее неизвестны. Обрезаем многоточием
+            // вместо переполнения: вылезшая надпись рисуется поверх соседней кнопки и читается
+            // как сломанная вёрстка, а не как длинное имя.
+            label.overflowMode = TextOverflowModes.Ellipsis;
+
+            button.gameObject.SetActive(false);
+            return button;
         }
 
         #endregion

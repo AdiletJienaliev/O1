@@ -235,7 +235,18 @@ namespace Warlord.Networking
         private void TryResolveBackend()
         {
             GameFlowConfig flow = config != null ? config.Flow : null;
-            NetworkBackend requested = flow != null ? flow.backend : NetworkBackend.Localhost;
+
+            if (flow == null)
+            {
+                // Молчаливый откат на адрес выглядит как «Steam не работает», хотя на деле
+                // ассет потока просто отвязан от GameConfig и режим читать неоткуда.
+                Debug.LogWarning("NetworkBootstrap: у GameConfig не задан GameFlowConfig — " +
+                                 "играем по адресу. Выполните «Warlord/Настройка/1»", this);
+                Commit(NetworkBackend.Localhost);
+                return;
+            }
+
+            NetworkBackend requested = flow.backend;
 
             if (requested == NetworkBackend.Localhost)
             {
@@ -275,6 +286,11 @@ namespace Warlord.Networking
         {
             _backend = backend;
             _backendResolved = true;
+
+            // Режим выбирается из конфига в рантайме, и увидеть его иначе негде: в логе
+            // FishNet видно только имя транспорта, но не то, почему выбран этот.
+            Debug.Log("NetworkBootstrap: соединение через " +
+                      (backend == NetworkBackend.Steam ? "Steam" : "адрес и порт"), this);
         }
 
         private Transport ActiveTransport()

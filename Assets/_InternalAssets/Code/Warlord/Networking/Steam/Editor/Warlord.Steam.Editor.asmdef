@@ -7,7 +7,9 @@
         "Warlord.Editor",
         "FishNet.Runtime",
         "com.rlabrecque.steamworks.net",
-        "Heathen.Steamworks"
+        "Heathen.Steamworks",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

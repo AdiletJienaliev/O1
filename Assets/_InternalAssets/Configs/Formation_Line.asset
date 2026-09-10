@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Formation_Line
   m_EditorClassIdentifier: 
   formationId: line
-  displayName: Линия
-  icon: {fileID: 0}
+  displayName: "\u041B\u0438\u043D\u0438\u044F"
+  icon: {fileID: 21300000, guid: 95f0dc2e89e4721468d3d7fa770622bf, type: 3}
   slotSpacing: 1.6
   maxRows: 2
   splitThreshold: 12

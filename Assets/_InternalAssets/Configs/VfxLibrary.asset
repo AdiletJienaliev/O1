@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3c4c71a38fe2e44a9eb792ce16f051f, type: 3}
+  m_Name: VfxLibrary
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Presentation.Vfx.VfxLibrary
+  meleeHit: {fileID: 100006, guid: 0de4826e17f7f20469e833b1b174edf1, type: 3}
+  swing: {fileID: 100006, guid: 80c40ab3b7dac27418f52fc1fe58f86d, type: 3}
+  death: {fileID: 100000, guid: 826b35e9a9ac54f4b91ab120804c2c65, type: 3}
+  captureBurst: {fileID: 100000, guid: 28e379ac560e3604d8a7a7e830196490, type: 3}
+  lifetime: 2.5
+  hitHeight: 1.1
+  maxConcurrent: 48

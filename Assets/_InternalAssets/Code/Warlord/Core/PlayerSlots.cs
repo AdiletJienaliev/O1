@@ -14,7 +14,8 @@ namespace Warlord.Core
 
         public static bool IsValid(int slot) => slot >= 0 && slot < MaxSupported;
 
-        /// <summary>True, если два слота принадлежат разным живым игрокам (FFA: все друг другу враги).</summary>
-        public static bool AreEnemies(int a, int b) => IsValid(a) && IsValid(b) && a != b;
+        // Проверки «враг или свой» здесь намеренно нет: с появлением команд ответ зависит
+        // от раскладки матча, а не от одних номеров слотов. Спрашивать нужно
+        // у <see cref="TeamLayout"/> — она же покрывает FFA как частный случай.
     }
 }

@@ -134,6 +134,12 @@ namespace Warlord.EditorTools.UI
         public static Sprite ItemSkull => Sprite(ItemIconDir + "itemicon_skull.png");
         public static Sprite ItemTrophy => Sprite(ItemIconDir + "itemicon_trophy_gold.png");
 
+        /// <summary>
+        /// Стрелка своего полководца на миникарте. Рисуется скриптом
+        /// «Warlord/UI/4», в наборе GUI PRO подходящей нет.
+        /// </summary>
+        public static Sprite MinimapHero => Sprite("Assets/_InternalAssets/Art/UI/Formations/Minimap_Hero.png");
+
         /// <summary>Иконки юнитов по индексу ростера: мечник, копейщик, лучник, легионер.</summary>
         public static Sprite[] UnitIcons => new[] { ItemSword, ItemSpear, ItemBow, ItemShield };
 

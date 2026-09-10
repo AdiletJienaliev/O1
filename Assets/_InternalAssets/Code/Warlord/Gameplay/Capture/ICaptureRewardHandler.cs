@@ -1,3 +1,5 @@
+using Warlord.Core;
+
 namespace Warlord.Gameplay.Capture
 {
     /// <summary>

@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4a49b6955145124ebc33c523304ba99, type: 3}
+  m_Name: Bot_Warden
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Configs.Bots.BotPersonalityConfig
+  displayName: "\u0421\u0442\u0440\u0430\u0436"
+  blurb: "\u0417\u0430\u0431\u0438\u0440\u0430\u0435\u0442 \u0441\u0432\u043E\u0451
+    \u0438 \u0434\u0435\u0440\u0436\u0438\u0442 \u043D\u0430\u043C\u0435\u0440\u0442\u0432\u043E.
+    \u0413\u0430\u0440\u043D\u0438\u0437\u043E\u043D\u044B, \u0449\u0438\u0442\u044B,
+    \u043D\u0438\u043A\u0430\u043A\u0438\u0445 \u0430\u0432\u0430\u043D\u0442\u044E\u0440."
+  namePool:
+  - "\u0411\u043E\u0440\u0445"
+  - "\u0421\u0442\u0435\u043D"
+  - "\u041A\u0440\u0435\u043F\u044C"
+  - "\u0414\u043E\u043D\u0438\u0439"
+  icon: {fileID: 0}
+  centerWeight: 1
+  outpostWeight: 1.2
+  defenseWeight: 1.8
+  raidWeight: 0.15
+  huntWeight: 0.3
+  supportWeight: 1.4
+  economyWeight: 1.1
+  caution: 0.85
+  persistence: 0.85
+  opportunism: 0.2
+  vengeance: 0.25
+  massBeforePush: 0.65
+  rangedShare: 0.35
+  tankPreference: 1.6
+  splashPreference: 0.9
+  garrisonShare: 0.5
+  upgradeEagerness: 0.7
+  branchPriority:
+  - 0.8
+  - 1.5
+  - 0.9
+  - 1.3
+  - 0.5
+  - 0.6
+  raidMinArmyShare: 0.9
+  raidWithArmy: 1
+  flanks: 0
+  travelOrder: 1
+  holdOrder: 3

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -169,11 +169,11 @@ namespace Warlord.Gameplay.Capture
 
             int initialOwner = _config.startsOwnedByZoneOwner ? ZoneOwnerSlot : PlayerSlots.None;
 
-            _logic = new CaptureLogic(_config, initialOwner);
+            _logic = new CaptureLogic(_config, initialOwner, context.Teams);
             _logic.Captured += OnLogicCaptured;
             _logic.OwnershipLost += OnLogicOwnershipLost;
 
-            _occupancy = new CaptureOccupancy(context.Players.SlotCount);
+            _occupancy = new CaptureOccupancy(context.Players.SlotCount, context.Teams);
 
             PublishState();
         }
@@ -259,7 +259,9 @@ namespace Warlord.Gameplay.Capture
 
             for (int i = 0; i < _occupants.Count; i++)
             {
-                if (_occupants[i].OwnerSlot == owner)
+                // Союзный юнит держит точку наравне со своим: правило «удержание стоит силы»
+                // говорит о силе на точке, а не о том, чьё именно золото на неё потрачено.
+                if (_context.Teams.SameSide(_occupants[i].OwnerSlot, owner))
                     return true;
             }
 

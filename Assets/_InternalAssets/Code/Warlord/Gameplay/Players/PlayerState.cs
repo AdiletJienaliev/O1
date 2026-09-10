@@ -40,6 +40,12 @@ namespace Warlord.Gameplay.Players
         private readonly SyncVar<float> _incomePerSecond = new(new SyncTypeSettings(0.5f));
         private readonly SyncVar<float> _flagHoldSeconds = new(new SyncTypeSettings(0.5f));
 
+        // Кто сидит в слоте. Индекс характера служит и признаком бота: отдельный bool рядом
+        // с ним рано или поздно разъехался бы с ним по значению, а так состояние одно.
+        private readonly SyncVar<byte> _botPersonality = new(NoBotPersonality);
+        private readonly SyncVar<byte> _botDifficulty = new();
+        private readonly SyncVar<byte> _botNameIndex = new();
+
         private readonly SyncList<SpawnTicket> _spawnQueue = new(new SyncTypeSettings(ReadPermission.OwnerOnly));
 
         private readonly List<SpawnTicket> _ticketBuffer = new(16);
@@ -69,6 +75,37 @@ namespace Warlord.Gameplay.Players
         /// <summary>Очередь постройки. Видна только владельцу — противнику она не нужна.</summary>
         public IReadOnlyList<SpawnTicket> SpawnQueue => _spawnQueue;
 
+        /// <summary>Значение индекса характера, означающее «слот занят живым игроком».</summary>
+        public const byte NoBotPersonality = 255;
+
+        /// <summary>Слотом управляет бот. Нужно и HUD, и таблице итогов, и самой системе ботов.</summary>
+        public bool IsBot => _botPersonality.Value != NoBotPersonality;
+
+        /// <summary>Индекс характера в наборе ботов или <see cref="NoBotPersonality"/> у живого игрока.</summary>
+        public int BotPersonalityIndex => _botPersonality.Value;
+
+        /// <summary>Сложность бота. У живого игрока значения не имеет.</summary>
+        public BotDifficulty BotDifficulty => (BotDifficulty)_botDifficulty.Value;
+
+        /// <summary>Индекс имени внутри пула характера: два одинаковых бота обязаны зваться по-разному.</summary>
+        public int BotNameIndex => _botNameIndex.Value;
+
+        /// <summary>
+        /// Команда игрока или -1, если он сам за себя. Читается из настроек комнаты,
+        /// поэтому одинаково работает и на сервере, и на клиенте.
+        /// </summary>
+        public int TeamId
+        {
+            get
+            {
+                if (_context != null)
+                    return _context.Teams.AssignedTeam(Slot);
+
+                MatchManager manager = MatchManager.Instance;
+                return manager != null ? manager.Settings.Teams.AssignedTeam(Slot) : -1;
+            }
+        }
+
         // --- Серверные объекты. На клиенте всегда null. ---
         public PlayerWallet Wallet { get; private set; }
         public ArmyController Army { get; private set; }
@@ -96,12 +133,26 @@ namespace Warlord.Gameplay.Players
         /// </summary>
         public static PlayerState Local { get; private set; }
 
+        /// <summary>
+        /// Все состояния игроков по слотам, как их видит эта машина. Нужны интерфейсу:
+        /// чтобы подписать строку таблицы, надо знать, бот в слоте или человек, а искать
+        /// это перебором сцены каждый кадр для каждой строки дороже, чем один массив.
+        /// Живёт рядом с <see cref="Local"/> и по тем же правилам.
+        /// </summary>
+        private static readonly PlayerState[] BySlot = new PlayerState[PlayerSlots.MaxSupported];
+
+        /// <summary>Игрок в слоте или null. Только для презентации — серверный код спрашивает реестр.</summary>
+        public static PlayerState Find(int slot) => PlayerSlots.IsValid(slot) ? BySlot[slot] : null;
+
         public override void OnStartClient()
         {
             base.OnStartClient();
 
             if (IsOwner)
                 Local = this;
+
+            if (PlayerSlots.IsValid(Slot))
+                BySlot[Slot] = this;
         }
 
         public override void OnStopClient()
@@ -110,6 +161,21 @@ namespace Warlord.Gameplay.Players
 
             if (Local == this)
                 Local = null;
+
+            if (PlayerSlots.IsValid(Slot) && BySlot[Slot] == this)
+                BySlot[Slot] = null;
+        }
+
+        /// <summary>
+        /// Пометить слот ботом. Вызывается спавнером до <see cref="NetworkBehaviour.IsSpawned"/>,
+        /// чтобы клиент получил объект уже с именем и сложностью и не показал безымянного игрока
+        /// на один кадр.
+        /// </summary>
+        public void ServerMarkAsBot(int personalityIndex, BotDifficulty difficulty, int nameIndex)
+        {
+            _botPersonality.Value = (byte)Mathf.Clamp(personalityIndex, 0, NoBotPersonality - 1);
+            _botDifficulty.Value = (byte)difficulty;
+            _botNameIndex.Value = (byte)Mathf.Clamp(nameIndex, 0, byte.MaxValue);
         }
 
         /// <summary>Инициализация на сервере сразу после спавна объекта игрока.</summary>
@@ -158,14 +224,24 @@ namespace Warlord.Gameplay.Players
             }
         }
 
+        /// <summary>
+        /// Множитель дохода этого игрока. Существует ради гандикапа сложности ботов
+        /// (<see cref="Warlord.Configs.Bots.BotDifficultyConfig.incomeMultiplier"/>) и по умолчанию
+        /// равен единице: у живых игроков и у ботов экономика одна и та же, пока
+        /// кто-то явно не решит иначе в ассете сложности.
+        /// </summary>
+        public float IncomeScale { get; set; } = 1f;
+
         /// <summary>Начисление дохода и публикация сводки для HUD.</summary>
         public void ServerTickEconomy(float deltaTime, in IncomeProfile income)
         {
             if (!IsServerInitialized || IsEliminated)
                 return;
 
-            Wallet.Accrue(in income, deltaTime);
-            _incomePerSecond.Value = income.GoldPerSecond;
+            float scale = Mathf.Max(0f, IncomeScale);
+
+            Wallet.Accrue(in income, deltaTime * scale);
+            _incomePerSecond.Value = income.GoldPerSecond * scale;
             _flagHoldSeconds.Value = _context.Scores.Get(Slot).FlagHoldSeconds;
             PublishWallet();
         }

@@ -18,17 +18,24 @@ namespace Warlord.Gameplay.Match
     /// </summary>
     public sealed class MatchContext : IMatchContext
     {
-        public MatchContext(GameConfig config, in MatchSettings settings, NetworkManager networkManager, MatchEvents events)
+        public MatchContext(
+            GameConfig config,
+            in MatchSettings settings,
+            NetworkManager networkManager,
+            MatchEvents events,
+            MatchRoster roster = null)
         {
             Config = config;
             Settings = settings;
             Events = events;
+            Roster = roster ?? new MatchRoster();
+            Teams = settings.Teams;
 
             int slotCount = settings.SlotCount;
 
             Scores = new ScoreBoard(slotCount);
             Players = new PlayerRegistry(slotCount);
-            Targeting = new TargetingService(slotCount);
+            Targeting = new TargetingService(slotCount, Teams);
             Damage = new DamageQueue();
             Projectiles = new ProjectileSystem(Damage, Targeting);
             LagCompensation = new SnapshotLagCompensator(config.Network);
@@ -44,6 +51,8 @@ namespace Warlord.Gameplay.Match
         public GameConfig Config { get; }
         public MatchSettings Settings { get; }
         public MatchPhase Phase { get; private set; }
+        public TeamLayout Teams { get; }
+        public MatchRoster Roster { get; }
 
         public MatchEvents Events { get; }
         public ScoreBoard Scores { get; }

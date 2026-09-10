@@ -120,6 +120,7 @@ GameObject:
   - component: {fileID: 6480516731326324893}
   - component: {fileID: 1496407567065753271}
   - component: {fileID: 6805716628369287633}
+  - component: {fileID: 530990831966927658}
   m_Layer: 0
   m_Name: Unit_SwordsMan
   m_TagString: Untagged
@@ -329,6 +330,20 @@ MonoBehaviour:
   - _Color
   - _TeamColor
   strength: 1
+--- !u!114 &530990831966927658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2420842358163579246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8556f3c0c8a2964c957374a3cd080de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Presentation.Vfx.CombatVfx
+  library: {fileID: 11400000, guid: db53794752397ce45a7ce09c31e93c36, type: 2}
+  healthSource: {fileID: 0}
 --- !u!1 &5566833917014651760
 GameObject:
   m_ObjectHideFlags: 0

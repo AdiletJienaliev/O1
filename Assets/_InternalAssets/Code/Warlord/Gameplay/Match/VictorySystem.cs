@@ -37,8 +37,10 @@ namespace Warlord.Gameplay.Match
 
             IReadOnlyList<int> alive = _context.Players.GetAliveSlots();
 
-            // Досрочная победа: остался один живой игрок.
-            if (alive.Count <= 1 && _context.Players.Active.Count > 1
+            // Досрочная победа: в матче осталась одна сторона. Считать по числу живых слотов
+            // нельзя — в командном матче двое выживших могут быть союзниками, и матч закончен,
+            // а могут быть врагами, и он в разгаре. Решает раскладку сам оценщик.
+            if (alive.Count < _context.Players.Active.Count && _context.Players.Active.Count > 1
                 && _evaluator.TryGetEarlyWinner(alive, out MatchOutcome early))
             {
                 Resolve(early);

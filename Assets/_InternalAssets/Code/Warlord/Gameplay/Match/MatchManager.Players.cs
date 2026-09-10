@@ -1,6 +1,7 @@
 using FishNet.Connection;
 using UnityEngine;
 using Warlord.Core;
+using Warlord.Gameplay.Bots;
 using Warlord.Domain.Combat;
 using Warlord.Domain.Match;
 using Warlord.Gameplay.Heroes;
@@ -35,10 +36,32 @@ namespace Warlord.Gameplay.Match
             Events.RaisePlayerJoined(player.Slot);
         }
 
+        /// <summary>
+        /// Регистрация бота. Отдельный вход, потому что боту вдобавок к объектам игрока
+        /// нужен собственный мозг и место в системе ботов — но всё остальное у него
+        /// ровно такое же, как у живого: тот же PlayerState, тот же полководец, те же правила.
+        /// </summary>
+        public BotPlayer ServerRegisterBot(PlayerState player, HeroController hero, in BotProfile profile, BotHeroPilot pilot)
+        {
+            if (!IsServerInitialized || ServerContext == null || player == null || Bots == null)
+                return null;
+
+            ServerRegisterPlayer(player, hero);
+
+            player.IncomeScale = profile.IncomeMultiplier;
+
+            BotPlayer bot = new(ServerContext, player, hero, in profile, pilot);
+            Bots.Add(bot);
+
+            return bot;
+        }
+
         public void ServerUnregisterPlayer(PlayerState player)
         {
             if (ServerContext == null || player == null)
                 return;
+
+            Bots?.Remove(player.Slot);
 
             // Отключение равносильно выбыванию: армия распускается, счёт остаётся в таблице.
             player.ServerEliminate(EliminationReason.Disconnected);
@@ -65,7 +88,7 @@ namespace Warlord.Gameplay.Match
             PlayerState owner = ServerContext.Players.Get(ownerSlot);
             owner?.ServerNotifyUnitLost(unit);
 
-            if (PlayerSlots.AreEnemies(killerSlot, ownerSlot))
+            if (ServerContext.Teams.AreEnemies(killerSlot, ownerSlot))
             {
                 ServerContext.Scores.AddUnitKill(killerSlot);
 

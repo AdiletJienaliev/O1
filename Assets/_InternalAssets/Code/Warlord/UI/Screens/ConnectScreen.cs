@@ -38,8 +38,22 @@ namespace Warlord.UI.Screens
         [SerializeField] private string defaultAddress = "127.0.0.1";
         [SerializeField] private ushort defaultPort = 7770;
 
+        [Header("Разметка")]
+        [Tooltip("Панель ужимается под режим: в Steam поля адреса скрыты, и высота под них — пустая дыра.")]
+        [SerializeField] private RectTransform panel;
+
+        [SerializeField] private float panelHeightDirect = 520f;
+        [SerializeField] private float panelHeightSteam = 336f;
+
+        [Tooltip("Отступ кнопки хоста от верха панели в каждом из режимов.")]
+        [SerializeField] private float hostOffsetDirect = -282f;
+        [SerializeField] private float hostOffsetSteam = -150f;
+
         /// <summary>Статус соединения перекрывает статус платформы, пока идёт подключение.</summary>
         private string _connectionStatus;
+
+        /// <summary>Какая разметка уже применена: -1 — ещё никакая.</summary>
+        private int _appliedLayout = -1;
 
         protected override void Awake()
         {
@@ -105,7 +119,35 @@ namespace Warlord.UI.Screens
             if (hostButton != null)
                 hostButton.interactable = ready;
 
+            ApplyLayout(steam);
+
             SetStatus(_connectionStatus ?? (bootstrap != null ? bootstrap.Status : string.Empty));
+        }
+
+        /// <summary>
+        /// Подгоняет высоту панели под режим. Разметка собрана под прямое подключение —
+        /// с полями адреса и порта; в Steam они скрыты, и без этого панель остаётся
+        /// с пустой полосой в две трети высоты.
+        /// </summary>
+        private void ApplyLayout(bool steam)
+        {
+            int layout = steam ? 1 : 0;
+            if (layout == _appliedLayout || panel == null)
+                return;
+
+            _appliedLayout = layout;
+
+            Vector2 size = panel.sizeDelta;
+            size.y = steam ? panelHeightSteam : panelHeightDirect;
+            panel.sizeDelta = size;
+
+            if (hostButton == null)
+                return;
+
+            var host = hostButton.GetComponent<RectTransform>();
+            Vector2 position = host.anchoredPosition;
+            position.y = steam ? hostOffsetSteam : hostOffsetDirect;
+            host.anchoredPosition = position;
         }
 
         private void StartHost()

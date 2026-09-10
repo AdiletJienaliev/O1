@@ -16,31 +16,44 @@ using Warlord.Gameplay.World;
 namespace Warlord.Gameplay.Players
 {
     /// <summary>
-    /// Клиентские команды и их серверная валидация (ГДД §12).
+    /// Команды игрока и их серверная валидация (ГДД §12).
     /// Правило простое: клиент только просит, решает сервер. Каждая проверка
     /// возвращает конкретную причину отказа, чтобы UI мог объяснить игроку, что не так.
+    ///
+    /// Каждая команда разбита на две части: тонкий <c>Cmd*</c> — ServerRpc, который умеет
+    /// только доставить просьбу и показать отказ, — и <c>ServerTry*</c>, где живёт вся
+    /// проверка и само действие. Так сделано ради ботов: бот живёт на сервере и RPC себе
+    /// послать не может, но и обходить правила не должен. Он зовёт те же <c>ServerTry*</c>,
+    /// поэтому «бот не стоит в зоне покупки» или «у бота не хватает золота» — это ровно
+    /// тот же код, что отказывает живому игроку. Добавленное правило начинает
+    /// действовать на ботов само, без единой правки в их коде.
     /// </summary>
     public sealed partial class PlayerState
     {
         #region Покупка юнита
 
         [ServerRpc]
-        public void CmdPurchaseUnit(byte rosterIndex)
+        public void CmdPurchaseUnit(byte rosterIndex) => Reject(ServerTryPurchaseUnit(rosterIndex));
+
+        /// <summary>Покупка полевого юнита на сервере. Возвращает причину отказа или None.</summary>
+        public CommandRejection ServerTryPurchaseUnit(int rosterIndex)
         {
-            CommandRejection rejection = ValidatePurchase(rosterIndex, out UnitConfig unit, out int cost);
+            CommandRejection rejection = ValidatePurchase(rosterIndex, out UnitConfig _, out int cost);
 
             if (rejection != CommandRejection.None)
-            {
-                RejectCommand(rejection);
-                return;
-            }
+                return rejection;
 
             Wallet.TrySpendGold(cost);
             BuildQueue.Enqueue(rosterIndex);
             PublishWallet();
+
+            return CommandRejection.None;
         }
 
-        private CommandRejection ValidatePurchase(byte rosterIndex, out UnitConfig unit, out int cost)
+        /// <summary>Пройдёт ли покупка прямо сейчас. Для подсветки кнопок и для планов бота.</summary>
+        public CommandRejection CanPurchaseUnit(int rosterIndex) => ValidatePurchase(rosterIndex, out _, out _);
+
+        private CommandRejection ValidatePurchase(int rosterIndex, out UnitConfig unit, out int cost)
         {
             unit = null;
             cost = 0;
@@ -64,7 +77,7 @@ namespace Warlord.Gameplay.Players
                 return CommandRejection.UnknownUnit;
 
             // Покупка возможна только когда полководец стоит в зоне покупки своей базы (ГДД §5.1).
-            if (!IsHeroInsideBuyZone())
+            if (!HeroInBuyZone)
                 return CommandRejection.NotInBuyZone;
 
             MatchSettings settings = _context.Settings;
@@ -93,20 +106,31 @@ namespace Warlord.Gameplay.Players
         [ServerRpc]
         public void CmdPurchaseGuard(byte rosterIndex, CapturePointBehaviour point)
         {
+            Reject(ServerTryPurchaseGuard(rosterIndex, point));
+        }
+
+        /// <summary>Покупка охранника на сервере. Возвращает причину отказа или None.</summary>
+        public CommandRejection ServerTryPurchaseGuard(int rosterIndex, CapturePointBehaviour point)
+        {
             CommandRejection rejection = ValidateGuardPurchase(rosterIndex, point, out int cost);
 
             if (rejection != CommandRejection.None)
-            {
-                RejectCommand(rejection);
-                return;
-            }
+                return rejection;
 
             Wallet.TrySpendGold(cost);
             BuildQueue.Enqueue(rosterIndex, point, cost);
             PublishWallet();
+
+            return CommandRejection.None;
         }
 
-        private CommandRejection ValidateGuardPurchase(byte rosterIndex, CapturePointBehaviour point, out int cost)
+        /// <summary>Пройдёт ли покупка охранника прямо сейчас.</summary>
+        public CommandRejection CanPurchaseGuard(int rosterIndex, CapturePointBehaviour point)
+        {
+            return ValidateGuardPurchase(rosterIndex, point, out _);
+        }
+
+        private CommandRejection ValidateGuardPurchase(int rosterIndex, CapturePointBehaviour point, out int cost)
         {
             cost = 0;
 
@@ -131,7 +155,7 @@ namespace Warlord.Gameplay.Players
             if (point.OwnerSlot != Slot)
                 return CommandRejection.PointNotOwned;
 
-            if (!IsHeroInsideBuyZone())
+            if (!HeroInBuyZone)
                 return CommandRejection.NotInBuyZone;
 
             int limit = Mathf.Max(1, Mathf.Min(point.MaxGuards, unit.maxPerPoint));
@@ -177,28 +201,30 @@ namespace Warlord.Gameplay.Players
         [ServerRpc]
         public void CmdSelectOutpostUpgrade(CapturePointBehaviour point, byte upgradeIndex)
         {
-            if (_context.Phase != MatchPhase.Running || IsEliminated)
-            {
-                RejectCommand(IsEliminated ? CommandRejection.PlayerEliminated : CommandRejection.MatchNotRunning);
-                return;
-            }
+            Reject(ServerTrySelectOutpostUpgrade(point, upgradeIndex));
+        }
+
+        /// <summary>Выбор улучшения аванпоста на сервере.</summary>
+        public CommandRejection ServerTrySelectOutpostUpgrade(CapturePointBehaviour point, int upgradeIndex)
+        {
+            if (IsEliminated)
+                return CommandRejection.PlayerEliminated;
+
+            if (_context.Phase != MatchPhase.Running)
+                return CommandRejection.MatchNotRunning;
 
             if (point == null || point.OwnerSlot != Slot)
-            {
-                RejectCommand(CommandRejection.PointNotOwned);
-                return;
-            }
+                return CommandRejection.PointNotOwned;
 
             OutpostUpgradeSetConfig set = _context.Config.OutpostUpgrades;
 
             if (!point.HasUpgradeSlot || set == null || !set.IsValidIndex(upgradeIndex))
-            {
-                RejectCommand(CommandRejection.UpgradeSlotUnavailable);
-                return;
-            }
+                return CommandRejection.UpgradeSlotUnavailable;
 
             point.ServerSetUpgrade(upgradeIndex);
             _context.RebuildOutpostUpgrades(Slot);
+
+            return CommandRejection.None;
         }
 
         /// <summary>
@@ -206,47 +232,49 @@ namespace Warlord.Gameplay.Players
         /// Переключение бесплатно и доступно только в зоне покупки своей базы.
         /// </summary>
         [ServerRpc]
-        public void CmdSetRallyPoint(CapturePointBehaviour point)
+        public void CmdSetRallyPoint(CapturePointBehaviour point) => Reject(ServerTrySetRallyPoint(point));
+
+        /// <summary>Переключение точки сбора на сервере.</summary>
+        public CommandRejection ServerTrySetRallyPoint(CapturePointBehaviour point)
         {
             if (IsEliminated)
-            {
-                RejectCommand(CommandRejection.PlayerEliminated);
-                return;
-            }
+                return CommandRejection.PlayerEliminated;
 
-            if (!IsHeroInsideBuyZone())
-            {
-                RejectCommand(CommandRejection.NotInBuyZone);
-                return;
-            }
+            if (!HeroInBuyZone)
+                return CommandRejection.NotInBuyZone;
 
             if (point == null)
             {
                 ServerSetRallyPoint(null);
-                return;
+                return CommandRejection.None;
             }
 
             if (point.OwnerSlot != Slot || !point.AllowsRallyPoint)
-            {
-                RejectCommand(CommandRejection.PointNotOwned);
-                return;
-            }
+                return CommandRejection.PointNotOwned;
 
             ServerSetRallyPoint(point);
+            return CommandRejection.None;
         }
 
-        private bool IsHeroInsideBuyZone()
+        /// <summary>
+        /// Стоит ли полководец в зоне покупки своей базы (ГДД §5.1). Публичное:
+        /// на него смотрят и валидации команд, и бот, решающий, пора ли возвращаться домой.
+        /// </summary>
+        public bool HeroInBuyZone
         {
-            if (Hero == null || !Hero.IsAlive)
-                return false;
+            get
+            {
+                if (Hero == null || !Hero.IsAlive || _context == null)
+                    return false;
 
-            PlayerBaseAnchor anchor = _context.Players.GetBaseAnchor(Slot);
-            float radius = anchor.BuyZoneRadius;
+                PlayerBaseAnchor anchor = _context.Players.GetBaseAnchor(Slot);
+                float radius = anchor.BuyZoneRadius;
 
-            Vector3 delta = Hero.Position - anchor.Center;
-            delta.y = 0f;
+                Vector3 delta = Hero.Position - anchor.Center;
+                delta.y = 0f;
 
-            return delta.sqrMagnitude <= radius * radius;
+                return delta.sqrMagnitude <= radius * radius;
+            }
         }
 
         #endregion
@@ -256,32 +284,30 @@ namespace Warlord.Gameplay.Players
         [ServerRpc]
         public void CmdSetOrder(byte orderType, Vector3 anchorPosition, float anchorYaw)
         {
-            if (_context.Phase != MatchPhase.Running)
-            {
-                RejectCommand(CommandRejection.MatchNotRunning);
-                return;
-            }
-
-            if (IsEliminated)
-            {
-                RejectCommand(CommandRejection.PlayerEliminated);
-                return;
-            }
-
             if (!System.Enum.IsDefined(typeof(ArmyOrderType), orderType))
             {
-                RejectCommand(CommandRejection.UnknownFormation);
+                Reject(CommandRejection.UnknownFormation);
                 return;
             }
+
+            Reject(ServerTrySetOrder((ArmyOrderType)orderType, anchorPosition, anchorYaw));
+        }
+
+        /// <summary>Смена приказа армии на сервере (ГДД §6).</summary>
+        public CommandRejection ServerTrySetOrder(ArmyOrderType orderType, Vector3 anchorPosition, float anchorYaw)
+        {
+            if (_context.Phase != MatchPhase.Running)
+                return CommandRejection.MatchNotRunning;
+
+            if (IsEliminated)
+                return CommandRejection.PlayerEliminated;
 
             // Точку приказа клиент шлёт сам, поэтому её обязательно проверяем по арене.
             if (!MatchArena.Contains(anchorPosition))
-            {
-                RejectCommand(CommandRejection.OutOfBounds);
-                return;
-            }
+                return CommandRejection.OutOfBounds;
 
-            ServerSetOrder(new ArmyOrder((ArmyOrderType)orderType, anchorPosition, anchorYaw));
+            ServerSetOrder(new ArmyOrder(orderType, anchorPosition, anchorYaw));
+            return CommandRejection.None;
         }
 
         /// <summary>
@@ -293,7 +319,7 @@ namespace Warlord.Gameplay.Players
         {
             if (IsEliminated)
             {
-                RejectCommand(CommandRejection.PlayerEliminated);
+                Reject(CommandRejection.PlayerEliminated);
                 return;
             }
 
@@ -303,7 +329,7 @@ namespace Warlord.Gameplay.Players
 
             if (!preset.Unpack(packed, _context.Config.Roster.Count))
             {
-                RejectCommand(CommandRejection.UnknownFormation);
+                Reject(CommandRejection.UnknownFormation);
                 return;
             }
 
@@ -311,21 +337,19 @@ namespace Warlord.Gameplay.Players
         }
 
         [ServerRpc]
-        public void CmdSetFormation(byte formationIndex)
+        public void CmdSetFormation(byte formationIndex) => Reject(ServerTrySetFormation(formationIndex));
+
+        /// <summary>Смена построения на сервере (ГДД §7).</summary>
+        public CommandRejection ServerTrySetFormation(int formationIndex)
         {
             if (IsEliminated)
-            {
-                RejectCommand(CommandRejection.PlayerEliminated);
-                return;
-            }
+                return CommandRejection.PlayerEliminated;
 
             if (!_context.Config.Formations.IsValidIndex(formationIndex))
-            {
-                RejectCommand(CommandRejection.UnknownFormation);
-                return;
-            }
+                return CommandRejection.UnknownFormation;
 
             ServerSetFormation(formationIndex);
+            return CommandRejection.None;
         }
 
         #endregion
@@ -335,42 +359,53 @@ namespace Warlord.Gameplay.Players
         [ServerRpc]
         public void CmdBuyUpgrade(byte branch)
         {
-            if (IsEliminated)
-            {
-                RejectCommand(CommandRejection.PlayerEliminated);
-                return;
-            }
-
             if (!System.Enum.IsDefined(typeof(UpgradeBranch), branch))
             {
-                RejectCommand(CommandRejection.UpgradeUnavailable);
+                Reject(CommandRejection.UpgradeUnavailable);
                 return;
             }
 
-            UpgradeBranch upgradeBranch = (UpgradeBranch)branch;
+            Reject(ServerTryBuyUpgrade((UpgradeBranch)branch));
+        }
+
+        /// <summary>Покупка перка на сервере (ГДД §11).</summary>
+        public CommandRejection ServerTryBuyUpgrade(UpgradeBranch branch)
+        {
+            if (IsEliminated)
+                return CommandRejection.PlayerEliminated;
+
             UpgradeLevels levels = Upgrades;
 
             CommandRejection rejection = UpgradePurchase.Validate(
                 _context.Config.UpgradeTree,
                 in levels,
                 Wallet.XpAvailable,
-                upgradeBranch,
+                branch,
                 out UpgradeNodeConfig node);
 
             if (rejection != CommandRejection.None)
-            {
-                RejectCommand(rejection);
-                return;
-            }
+                return rejection;
 
             Wallet.TrySpendXp(node.xpCost);
-            ServerApplyUpgrades(levels.With(upgradeBranch, levels.Get(upgradeBranch) + 1));
+            ServerApplyUpgrades(levels.With(branch, levels.Get(branch) + 1));
             PublishWallet();
+
+            return CommandRejection.None;
         }
 
         #endregion
 
-        private void RejectCommand(CommandRejection reason) => TargetCommandRejected(Owner, (byte)reason);
+        /// <summary>
+        /// Сообщить владельцу, почему команда не прошла. У бота владельца нет,
+        /// и рассказывать об отказе некому — он читает возвращённую причину сам.
+        /// </summary>
+        private void Reject(CommandRejection reason)
+        {
+            if (reason == CommandRejection.None || Owner == null || !Owner.IsActive)
+                return;
+
+            TargetCommandRejected(Owner, (byte)reason);
+        }
 
         /// <summary>
         /// Обратная связь владельцу: почему команда не прошла. Для тултипов и звука отказа.

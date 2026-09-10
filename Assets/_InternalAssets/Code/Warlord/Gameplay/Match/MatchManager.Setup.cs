@@ -1,5 +1,6 @@
 using UnityEngine;
 using Warlord.Core;
+using Warlord.Gameplay.Bots;
 using Warlord.Domain.Combat;
 using Warlord.Domain.Match;
 using Warlord.Gameplay.Army;
@@ -22,12 +23,16 @@ namespace Warlord.Gameplay.Match
     {
         private CombatResolutionSystem _combatResolution;
         private CaptureSystem _capture;
+        private BotSystem _bots;
 
-        private void BuildMatch(in MatchSettings settings)
+        /// <summary>Боты этого матча. Пусто, если в комнате не было ни одного.</summary>
+        public BotSystem Bots => _bots;
+
+        private void BuildMatch(in MatchSettings settings, MatchRoster roster)
         {
             TeardownMatch();
 
-            ServerContext = new MatchContext(config, in settings, NetworkManager, Events);
+            ServerContext = new MatchContext(config, in settings, NetworkManager, Events, roster);
             _accumulator = new FixedStepAccumulator(config.Network.CombatTickDelta);
             _clock = new MatchClock(settings.MatchDuration);
 
@@ -46,13 +51,19 @@ namespace Warlord.Gameplay.Match
             _victory = new VictorySystem(
                 ServerContext,
                 _clock,
-                new VictoryEvaluator(ServerContext.Scores, config.GameMode.winTiebreakOrder));
+                new VictoryEvaluator(ServerContext.Scores, config.GameMode.winTiebreakOrder, ServerContext.Teams));
             _victory.MatchResolved += OnMatchResolved;
 
             ServerSystemScheduler systems = ServerContext.Systems;
             systems.Register(new MatchClockSystem(ServerContext, _clock));
             systems.Register(_capture);
             systems.Register(new EconomySystem(ServerContext));
+
+            // Боты — обычная серверная система: они не «управляются извне», а тикают
+            // в общем такте наравне с экономикой и боем.
+            _bots = new BotSystem(ServerContext);
+            systems.Register(_bots);
+
             systems.Register(new SpawnQueueSystem(ServerContext));
             systems.Register(new ArmyEngagementSystem(ServerContext));
             systems.Register(new ArmyFormationSystem(ServerContext));
@@ -105,6 +116,7 @@ namespace Warlord.Gameplay.Match
             _combatResolution = null;
             _victory = null;
             _capture = null;
+            _bots = null;
         }
     }
 }

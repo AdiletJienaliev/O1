@@ -215,8 +215,12 @@ namespace Warlord.EditorTools.UI
             RectTransform root = Ui.Node("Minimap", screen).At(Ui.TopRight, new Vector2(-14f, -114f), new Vector2(148f, 148f));
             root.Sprite(Kit.PanelSmall, Color.white);
 
+            // Ровное тёмное поле, а не декоративный паттерн: BackgroundPattern рассчитан на
+            // тайлинг, и растянутый на 148×148 он давал один огромный шеврон — миникарта
+            // читалась как стрелка неизвестного назначения. Маркеры должны быть единственным,
+            // что видно внутри рамки.
             RectTransform field = Ui.Node("Field", root).Stretch(9f, 9f, 9f, 9f);
-            field.Sprite(Kit.BackgroundPattern, new Color(1f, 1f, 1f, 0.12f), Image.Type.Simple);
+            field.Sprite(null, new Color(0.05f, 0.07f, 0.11f, 0.88f));
 
             MinimapMarkerView markerTemplate = Spawn<MinimapMarkerView>(templates.MinimapMarker, field, "MarkerTemplate");
             markerTemplate.gameObject.SetActive(false);
@@ -229,6 +233,7 @@ namespace Warlord.EditorTools.UI
                     .Ref("markerTemplate", markerTemplate)
                     .Ref("root", root.gameObject)
                     .Ref("heroIcon", null)
+                    .Ref("localHeroIcon", Kit.MinimapHero)
                     .Ref("flagIcon", Kit.ItemFlag)
                     .Ref("baseIcon", Kit.ItemCastle);
             }
@@ -319,6 +324,10 @@ namespace Warlord.EditorTools.UI
         {
             RectTransform queue = Ui.Node("SpawnQueue", screen).At(Ui.Bottom, new Vector2(0f, 168f), new Vector2(346f, 50f));
 
+            // Подложка нужна ради пустого состояния: без неё надпись «очередь пуста» висела
+            // серым текстом прямо на поле боя и читалась как отладочный вывод.
+            queue.Sprite(Kit.PanelSmall, new Color(1f, 1f, 1f, 0.85f));
+
             RectTransform slots = Ui.Node("Slots", queue).At(Ui.Center, Vector2.zero, new Vector2(334f, 46f));
             slots.Row(4f, TextAnchor.MiddleCenter);
 
@@ -399,21 +408,26 @@ namespace Warlord.EditorTools.UI
                 orderButtons[i].GetComponent<RectTransform>().sizeDelta = new Vector2(60f, 60f);
             }
 
-            RectTransform formations = Ui.Node("Formations", bar).At(Ui.Bottom, new Vector2(0f, 66f), new Vector2(268f, 62f));
+            RectTransform formations = Ui.Node("Formations", bar).At(Ui.Bottom, new Vector2(0f, 66f), new Vector2(372f, 62f));
             formations.Row(5f, TextAnchor.MiddleCenter);
 
             HotkeyButtonView formationTemplate = Spawn<HotkeyButtonView>(templates.OrderButton, formations, "FormationTemplate");
 
-            // Построений теперь четыре вместе с пользовательским строем — кнопки поуже.
-            formationTemplate.GetComponent<RectTransform>().sizeDelta = new Vector2(60f, 60f);
+            // Шире кнопок приказов: у построений под иконкой стоит название, и на 60px
+            // «Треугольник» вылезал на соседей. 88px хватает и на четвёртый, пользовательский
+            // строй: 4 × 88 + 3 × 5 = 367 при контейнере 372.
+            formationTemplate.GetComponent<RectTransform>().sizeDelta = new Vector2(88f, 60f);
             formationTemplate.gameObject.SetActive(false);
 
             // Три кнопки панелей идут одной колонкой над рядами приказов: они открываются
             // на базе, а не в бою, и держать их вплотную к боевым кнопкам не нужно.
-            upgradeToggle = MenuButton("UpgradeToggle", bar, "ПРОКАЧКА  ⇥", Kit.ButtonNavy);
+            // Кегль 15f — как у кнопки гарнизона рядом: три переключателя панелей должны
+            // читаться одинаково. Символ Tab пишем словом: глифа U+21E5 в Quicksand нет,
+            // и он отрисовывался прямоугольником-заглушкой.
+            upgradeToggle = MenuButton("UpgradeToggle", bar, "ПРОКАЧКА  TAB", Kit.ButtonNavy, 15f);
             upgradeToggle.GetComponent<RectTransform>().At(Ui.Bottom, new Vector2(0f, 132f), new Vector2(176f, 30f));
 
-            presetToggle = MenuButton("PresetToggle", bar, "РАССТАНОВКА  B", Kit.ButtonNavy);
+            presetToggle = MenuButton("PresetToggle", bar, "РАССТАНОВКА  B", Kit.ButtonNavy, 15f);
             presetToggle.GetComponent<RectTransform>().At(Ui.Bottom, new Vector2(0f, 166f), new Vector2(176f, 30f));
 
             OrderBarWidget widget = bar.gameObject.AddComponent<OrderBarWidget>();
@@ -678,7 +692,9 @@ namespace Warlord.EditorTools.UI
 
         private static ToastWidget BuildToast(RectTransform screen)
         {
-            RectTransform toast = Ui.Node("Toast", screen).At(Ui.Center, new Vector2(0f, 210f), new Vector2(640f, 72f));
+            // Под баннером флага, а не в середине экрана: в центре тост попадал ровно на
+            // полосу очереди спавна и накрывал её собой.
+            RectTransform toast = Ui.Node("Toast", screen).At(Ui.Top, new Vector2(0f, -190f), new Vector2(640f, 72f));
             Image background = toast.Sprite(Kit.Pill, Ui.Danger);
 
             CanvasGroup group = toast.Group(0f);

@@ -121,6 +121,7 @@ GameObject:
   - component: {fileID: 90801827068910592}
   - component: {fileID: 5023244070922074156}
   - component: {fileID: 2886211814575933203}
+  - component: {fileID: 5033617222958054922}
   m_Layer: 0
   m_Name: Unit_Archer
   m_TagString: Untagged
@@ -344,6 +345,20 @@ MonoBehaviour:
   projectilePrefab: {fileID: 0}
   muzzle: {fileID: 779761887421457924}
   muzzleOffset: {x: 0, y: 1.2, z: 0.35}
+--- !u!114 &5033617222958054922
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2420842358163579246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8556f3c0c8a2964c957374a3cd080de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Warlord.Runtime::Warlord.Presentation.Vfx.CombatVfx
+  library: {fileID: 11400000, guid: db53794752397ce45a7ce09c31e93c36, type: 2}
+  healthSource: {fileID: 0}
 --- !u!1 &5566833917014651760
 GameObject:
   m_ObjectHideFlags: 0

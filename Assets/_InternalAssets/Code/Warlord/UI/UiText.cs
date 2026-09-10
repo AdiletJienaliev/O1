@@ -1,6 +1,9 @@
 using Warlord.Configs;
+using Warlord.Configs.Bots;
 using Warlord.Core;
 using Warlord.Domain.Match;
+using Warlord.Gameplay.Match;
+using Warlord.Gameplay.Players;
 
 namespace Warlord.UI
 {
@@ -25,6 +28,40 @@ namespace Warlord.UI
                 case CommandRejection.UnknownFormation: return "Неизвестное построение";
                 case CommandRejection.OutOfBounds: return "Точка вне карты";
                 default: return string.Empty;
+            }
+        }
+
+        /// <summary>Название сложности бота. Берётся из ассета, если он есть, иначе запасное.</summary>
+        public static string Difficulty(BotDifficulty difficulty)
+        {
+            switch (difficulty)
+            {
+                case BotDifficulty.Easy: return "Лёгкий";
+                case BotDifficulty.Normal: return "Обычный";
+                case BotDifficulty.Hard: return "Сложный";
+                case BotDifficulty.Brutal: return "Жестокий";
+                default: return difficulty.ToString();
+            }
+        }
+
+        /// <summary>Подпись команды. Отрицательный id означает «сам за себя» — обычный FFA.</summary>
+        public static string Team(int teamId)
+        {
+            if (teamId < 0)
+                return "—";
+
+            const string Letters = "АБВГ";
+            return teamId < Letters.Length ? Letters[teamId].ToString() : (teamId + 1).ToString();
+        }
+
+        /// <summary>Кто сидит в слоте, для списка комнаты и таблицы итогов.</summary>
+        public static string SlotOccupant(SlotKind kind)
+        {
+            switch (kind)
+            {
+                case SlotKind.Human: return "Игрок";
+                case SlotKind.Bot: return "Бот";
+                default: return "Свободно";
             }
         }
 
@@ -116,6 +153,24 @@ namespace Warlord.UI
             return string.IsNullOrEmpty(unit.displayName) ? unit.unitId : unit.displayName;
         }
 
-        public static string PlayerName(int slot) => "Игрок " + (slot + 1);
+        /// <summary>
+        /// Как зовут игрока в этом слоте. У бота — его собственное имя из набора характеров:
+        /// «Игрок 3» в ленте событий и в таблице итогов стирает единственное, чем боты
+        /// отличаются друг от друга, а именно они и должны читаться как разные противники.
+        /// </summary>
+        public static string PlayerName(int slot)
+        {
+            PlayerState player = PlayerState.Find(slot);
+
+            if (player == null || !player.IsBot)
+                return "Игрок " + (slot + 1);
+
+            MatchManager match = MatchManager.Instance;
+            BotSetConfig bots = match != null && match.Config != null ? match.Config.Bots : null;
+
+            return bots != null
+                ? bots.ResolveName(player.BotPersonalityIndex, player.BotNameIndex)
+                : "Бот " + (slot + 1);
+        }
     }
 }

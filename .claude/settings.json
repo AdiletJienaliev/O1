@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Tools/agent/unity.sh:*)",
+      "Bash(./Tools/agent/unity.sh:*)",
+      "Bash(bash Tools/agent/unity.sh:*)"
+    ]
+  }
+}

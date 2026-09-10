@@ -99,7 +99,8 @@ namespace Warlord.EditorTools.UI
                     .Ref("addressField", address)
                     .Ref("portField", port)
                     .Ref("statusLabel", status)
-                    .Ref("versionLabel", version);
+                    .Ref("versionLabel", version)
+                    .Ref("panel", panel);
             }
 
             return connect;
@@ -122,31 +123,49 @@ namespace Warlord.EditorTools.UI
             TextMeshProUGUI map = Ui.Label("Map", screen, "Арена", 26f, Ui.InkMuted, TextAlignmentOptions.Center);
             map.rectTransform.At(Ui.Top, new Vector2(0f, -128f), new Vector2(700f, 34f));
 
-            // Список игроков.
-            RectTransform panel = Ui.Node("Players", screen).At(Ui.Center, new Vector2(-330f, 10f), new Vector2(660f, 460f));
+            // Экран раскладывается в четыре колонки: список Steam-комнаты, слоты, настройки,
+            // чат. Ширины и отступы держим здесь одним расчётом (LobbyColumns), иначе панели
+            // Steam, которые ставятся отдельным скриптом, встают вплотную к базовым и налезают.
+            RectTransform panel = Ui.Node("Players", screen)
+                .At(Ui.Center, new Vector2(LobbyColumns.PlayersX, LobbyColumns.CenterY), new Vector2(LobbyColumns.PlayersWidth, LobbyColumns.Height));
             panel.Sprite(Kit.PanelLarge, Color.white);
 
-            RectTransform slots = Ui.Node("Slots", panel).At(Ui.Top, new Vector2(0f, -40f), new Vector2(610f, 380f)).Pivot(Ui.Top);
+            RectTransform slots = Ui.Node("Slots", panel)
+                .At(Ui.Top, new Vector2(0f, -40f), new Vector2(LobbyColumns.PlayersWidth - 50f, 380f)).Pivot(Ui.Top);
             slots.Column(12f, TextAnchor.UpperCenter);
 
             LobbySlotView slotTemplate = Spawn<LobbySlotView>(templates.LobbySlot, slots, "SlotTemplate");
             slotTemplate.gameObject.SetActive(false);
 
             // Цвета и настройки комнаты.
-            RectTransform side = Ui.Node("Side", screen).At(Ui.Center, new Vector2(330f, 10f), new Vector2(560f, 460f));
+            RectTransform side = Ui.Node("Side", screen)
+                .At(Ui.Center, new Vector2(LobbyColumns.SideX, LobbyColumns.CenterY), new Vector2(LobbyColumns.SideWidth, LobbyColumns.Height));
             side.Sprite(Kit.PanelLarge, Color.white);
 
             Ui.Label("ColorTitle", side, "ЦВЕТ", 24f, Ui.InkMuted, TextAlignmentOptions.Left, Kit.FontTitle)
-                .rectTransform.At(Ui.TopLeft, new Vector2(36f, -34f), new Vector2(260f, 30f));
+                .rectTransform.At(Ui.TopLeft, new Vector2(32f, -34f), new Vector2(260f, 30f));
 
-            RectTransform colors = Ui.Node("Colors", side).At(Ui.TopLeft, new Vector2(36f, -74f), new Vector2(480f, 64f));
+            RectTransform colors = Ui.Node("Colors", side).At(Ui.TopLeft, new Vector2(32f, -74f), new Vector2(LobbyColumns.SideWidth - 64f, 64f));
             colors.Row(16f);
 
             Button colorTemplate = Ui.Button("ColorTemplate", colors, Kit.CircleSmall, Color.white, out _);
             colorTemplate.GetComponent<RectTransform>().sizeDelta = new Vector2(60f, 60f);
             colorTemplate.gameObject.SetActive(false);
 
-            RectTransform settings = Ui.Node("HostSettings", side).At(Ui.TopLeft, new Vector2(36f, -164f), new Vector2(490f, 190f)).Pivot(Ui.TopLeft);
+            // Боты. Стоят между цветом и настройками комнаты: набрать состав нужно
+            // раньше, чем крутить длительность матча, и кнопка «заполнить» должна быть
+            // на виду — ради неё половина сессий и запускается в одиночку.
+            Button fillBots = MenuButton("FillBotsButton", side, "ЗАПОЛНИТЬ БОТАМИ", Kit.ButtonGreen, 22f);
+            fillBots.GetComponent<RectTransform>()
+                .At(Ui.TopLeft, new Vector2(32f, -152f), new Vector2(LobbyColumns.SideWidth - 64f, 56f)).Pivot(Ui.TopLeft);
+
+            Button botDifficulty = MenuButton("BotDifficultyButton", side, "НОВЫЕ БОТЫ: ОБЫЧНЫЙ", Kit.ButtonNavy, 18f);
+            botDifficulty.GetComponent<RectTransform>()
+                .At(Ui.TopLeft, new Vector2(32f, -216f), new Vector2(LobbyColumns.SideWidth - 64f, 48f)).Pivot(Ui.TopLeft);
+            TextMeshProUGUI botDifficultyLabel = botDifficulty.GetComponentInChildren<TextMeshProUGUI>();
+
+            RectTransform settings = Ui.Node("HostSettings", side)
+                .At(Ui.TopLeft, new Vector2(32f, -284f), new Vector2(LobbyColumns.SideWidth - 64f, 190f)).Pivot(Ui.TopLeft);
 
             Ui.Label("SettingsTitle", settings, "НАСТРОЙКИ КОМНАТЫ", 24f, Ui.InkMuted, TextAlignmentOptions.Left, Kit.FontTitle)
                 .rectTransform.At(Ui.TopLeft, new Vector2(0f, 0f), new Vector2(400f, 30f));
@@ -196,7 +215,10 @@ namespace Warlord.EditorTools.UI
                     .Ref("startingGoldLabel", goldValue)
                     .Ref("mapLabel", map)
                     .Ref("inviteButton", invite)
-                    .Ref("platformMembersLabel", platformMembers);
+                    .Ref("platformMembersLabel", platformMembers)
+                    .Ref("fillBotsButton", fillBots)
+                    .Ref("botDifficultyButton", botDifficulty)
+                    .Ref("botDifficultyLabel", botDifficultyLabel);
             }
 
             return lobby;
@@ -275,12 +297,16 @@ namespace Warlord.EditorTools.UI
             return screen;
         }
 
-        private static Button MenuButton(string name, Transform parent, string caption, Sprite sprite)
+        /// <summary>
+        /// Кнопка с подписью. Кегль вынесен в параметр: 28f верен для больших кнопок меню,
+        /// но в HUD те же кнопки высотой 30px, и текст такого размера вылезал за экран.
+        /// </summary>
+        private static Button MenuButton(string name, Transform parent, string caption, Sprite sprite, float fontSize = 28f)
         {
             Button button = Ui.Button(name, parent, sprite, Color.white, out Image background);
             background.Shadow(new Color(0f, 0f, 0f, 0.35f), new Vector2(0f, -3f));
 
-            TextMeshProUGUI label = Ui.Label("Text", button.transform, caption, 28f, Color.white, TextAlignmentOptions.Center, Kit.FontTitle);
+            TextMeshProUGUI label = Ui.Label("Text", button.transform, caption, fontSize, Color.white, TextAlignmentOptions.Center, Kit.FontTitle);
             label.rectTransform.Stretch(0f, 4f, 0f, 0f);
 
             return button;

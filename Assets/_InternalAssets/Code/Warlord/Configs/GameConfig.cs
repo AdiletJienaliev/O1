@@ -1,4 +1,5 @@
 using UnityEngine;
+using Warlord.Configs.Bots;
 using Warlord.Configs.Formations;
 using Warlord.Configs.Upgrades;
 
@@ -40,6 +41,10 @@ namespace Warlord.Configs
         [Tooltip("Три улучшения аванпоста (ГДД §2.5). Индекс в наборе — сетевой id выбора.")]
         [SerializeField] private OutpostUpgradeSetConfig outpostUpgrades;
 
+        [Header("Боты")]
+        [Tooltip("Характеры и сложности ботов. Пусто — ботов в лобби добавить нельзя, матч идёт как раньше.")]
+        [SerializeField] private BotSetConfig bots;
+
         [Header("Презентация")]
         [SerializeField] private TeamColorConfig teamColors;
 
@@ -63,6 +68,13 @@ namespace Warlord.Configs
         public CapturePointConfig BaseFlag => baseFlag;
         public CapturePointConfig Outpost => outpost;
         public OutpostUpgradeSetConfig OutpostUpgrades => outpostUpgrades;
+
+        /// <summary>Набор ботов. Может быть пустым: игра обязана запускаться и без них.</summary>
+        public BotSetConfig Bots => bots;
+
+        /// <summary>Можно ли вообще добавлять ботов в этой сборке контента.</summary>
+        public bool BotsAvailable => bots != null && bots.Count > 0;
+
         public TeamColorConfig TeamColors => teamColors;
 
         /// <summary>Проверка целостности ассета — вызывается бутстрапом до старта сети.</summary>

@@ -19,6 +19,10 @@ namespace Warlord.UI.Widgets
             target.anchoredPosition = anchoredPosition;
             target.localScale = new Vector3(scale, scale, 1f);
 
+            // Метки переиспользуются из пула, поэтому поворот сбрасывается здесь: иначе
+            // повёрнутая под героя метка на следующем кадре достаётся флагу.
+            target.localRotation = Quaternion.identity;
+
             if (dot != null)
                 dot.color = color;
 
@@ -31,6 +35,9 @@ namespace Warlord.UI.Widgets
             icon.sprite = sprite;
             icon.enabled = sprite != null;
         }
+
+        /// <summary>Разворот метки, град. по часовой: миникарта показывает, куда смотрит игрок.</summary>
+        public void SetRotation(float degrees) => Rect.localRotation = Quaternion.Euler(0f, 0f, -degrees);
 
         public void Show(bool value)
         {

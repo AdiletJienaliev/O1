@@ -151,10 +151,14 @@ namespace Warlord.Presentation
         {
             // Полководец пересоздаётся между матчами, поэтому цель проверяем каждый кадр,
             // а не кэшируем один раз при старте.
-            Transform next = ResolveHeroView(HeroController.Local);
+            HeroController hero = HeroController.Local;
+            Transform next = ResolveHeroView(hero);
 
             if (next == null)
+            {
+                hero = null;
                 next = fallbackTarget;
+            }
 
             if (next == _target)
                 return;
@@ -163,6 +167,13 @@ namespace Warlord.Presentation
 
             if (_target == null)
                 return;
+
+            // Новый полководец — старт матча или респавн. Камера обязана встать ему за
+            // спину: спавн разворачивает героя лицом на арену (PlayerBaseAnchor.YawDegrees),
+            // а камера иначе осталась бы в авторской ротации сцены, и игрок начинал бы
+            // матч, глядя в стену собственной базы.
+            _yaw = hero != null ? hero.transform.eulerAngles.y : _target.eulerAngles.y;
+            _pitch = Mathf.Clamp(startPitch, minPitch, maxPitch);
 
             // Первый захват цели — без сглаживания, иначе камера летит через всю карту.
             _pivot = _target.position + pivotOffset;

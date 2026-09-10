@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0b3baf2bac7a0c4e92a2df7d6cc67bb, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: 
-  flow: {fileID: 0}
+  flow: {fileID: 11400000, guid: 72d1b58635418e04898c96a8bdfb4fb7, type: 2}
   gameMode: {fileID: 11400000, guid: 43f4041ff1264df78078118b539ab9b2, type: 2}
   network: {fileID: 11400000, guid: d88984ce92e541dcbcd1be31aa98d89a, type: 2}
   hero: {fileID: 11400000, guid: 077169948ceb469c9ec19fcdd796e51b, type: 2}
@@ -25,4 +25,5 @@ MonoBehaviour:
   baseFlag: {fileID: 11400000, guid: 6e289cd5b18c4d55875cc858fd858436, type: 2}
   outpost: {fileID: 11400000, guid: 5d767a88712c5c64f9f609e61c551cad, type: 2}
   outpostUpgrades: {fileID: 11400000, guid: 66092e6dddbb7524eb37de9116b8d8cf, type: 2}
+  bots: {fileID: 11400000, guid: 9a55a381362c888468196b9825b895c0, type: 2}
   teamColors: {fileID: 11400000, guid: e605b9d1ec904f6c9b53888d555c206d, type: 2}
