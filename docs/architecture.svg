@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 620" width="1220" height="620" role="img" aria-label="Warlord architecture: authoritative server systems, pure domain rules, configs, and a presentation-only client">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0f22"/>
+      <stop offset="100%" stop-color="#070b1a"/>
+    </linearGradient>
+    <marker id="arrowGold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#e8c06a"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7aa2f7"/>
+    </marker>
+  </defs>
+
+  <rect width="1220" height="620" fill="url(#bg)"/>
+
+  <g font-family="Trebuchet MS, Segoe UI, Helvetica, Arial, sans-serif">
+    <!-- SERVER -->
+    <rect x="40" y="44" width="480" height="424" rx="18" fill="#0f1730" stroke="#e8c06a" stroke-opacity="0.45"/>
+    <text x="64" y="78" font-size="17" font-weight="bold" letter-spacing="2" fill="#e8c06a">SERVER &#183; HOST</text>
+    <text x="64" y="98" font-size="12" fill="#7d8cb5">the only place where match state is decided</text>
+
+    <rect x="64" y="112" width="432" height="104" rx="12" fill="#141e3d" stroke="#2b3a6b"/>
+    <text x="84" y="138" font-size="14" font-weight="bold" fill="#dbe4ff">Gameplay &#8212; server systems @ 20 Hz</text>
+    <text x="84" y="160" font-size="12.5" fill="#9aa8cf">MatchManager &#183; ServerSystemScheduler &#183; VictorySystem</text>
+    <text x="84" y="180" font-size="12.5" fill="#9aa8cf">Combat &#183; Capture &#183; Economy &#183; Army &#183; Heroes &#183; Bots</text>
+    <text x="84" y="200" font-size="12.5" fill="#9aa8cf">validates every client command, owns every unit</text>
+
+    <rect x="64" y="232" width="432" height="104" rx="12" fill="#141e3d" stroke="#2b3a6b"/>
+    <text x="84" y="258" font-size="14" font-weight="bold" fill="#dbe4ff">Domain &#8212; rules, no scene, no network</text>
+    <text x="84" y="280" font-size="12.5" fill="#9aa8cf">DamageCalculator &#183; VictoryEvaluator &#183; ScoreBoard</text>
+    <text x="84" y="300" font-size="12.5" fill="#9aa8cf">Capture &#183; Economy &#183; Formations &#183; Stats &#183; Upgrades</text>
+    <text x="84" y="320" font-size="12.5" fill="#9aa8cf">plain C# &#8212; readable, testable, order-independent</text>
+
+    <rect x="64" y="352" width="432" height="96" rx="12" fill="#141e3d" stroke="#2b3a6b"/>
+    <text x="84" y="378" font-size="14" font-weight="bold" fill="#dbe4ff">Configs &#8212; ScriptableObject balance</text>
+    <text x="84" y="400" font-size="12.5" fill="#9aa8cf">GameMode &#183; Units &#183; Heroes &#183; Bots &#183; Upgrades &#183; Formations</text>
+    <text x="84" y="420" font-size="12.5" fill="#9aa8cf">never mutated at runtime &#8212; rooms override, assets stay</text>
+
+    <!-- CLIENT -->
+    <rect x="700" y="44" width="480" height="424" rx="18" fill="#0f1730" stroke="#7aa2f7" stroke-opacity="0.45"/>
+    <text x="724" y="78" font-size="17" font-weight="bold" letter-spacing="2" fill="#7aa2f7">CLIENT</text>
+    <text x="724" y="98" font-size="12" fill="#7d8cb5">shows state and sends intent &#8212; decides nothing</text>
+
+    <rect x="724" y="112" width="432" height="104" rx="12" fill="#141e3d" stroke="#2b3a6b"/>
+    <text x="744" y="138" font-size="14" font-weight="bold" fill="#dbe4ff">UI &#8212; screens &amp; widgets</text>
+    <text x="744" y="160" font-size="12.5" fill="#9aa8cf">Connect &#183; Lobby &#183; HUD &#183; Result</text>
+    <text x="744" y="180" font-size="12.5" fill="#9aa8cf">shop &#183; upgrades &#183; minimap &#183; orders &#183; event feed</text>
+    <text x="744" y="200" font-size="12.5" fill="#9aa8cf">one widget = one slice of match state</text>
+
+    <rect x="724" y="232" width="432" height="104" rx="12" fill="#141e3d" stroke="#2b3a6b"/>
+    <text x="744" y="258" font-size="14" font-weight="bold" fill="#dbe4ff">Presentation &#8212; what the battle looks like</text>
+    <text x="744" y="280" font-size="12.5" fill="#9aa8cf">orbit camera &#183; animation drivers &#183; team colors</text>
+    <text x="744" y="300" font-size="12.5" fill="#9aa8cf">VFX pool &#183; projectiles &#183; health bars &#183; capture views</text>
+    <text x="744" y="320" font-size="12.5" fill="#9aa8cf">interpolated, never authoritative</text>
+
+    <rect x="724" y="352" width="432" height="96" rx="12" fill="#141e3d" stroke="#2b3a6b"/>
+    <text x="744" y="378" font-size="14" font-weight="bold" fill="#dbe4ff">Input &#8212; warlord controls</text>
+    <text x="744" y="400" font-size="12.5" fill="#9aa8cf">IHeroInputSource &#8212; keyboard, mouse, or a bot</text>
+    <text x="744" y="420" font-size="12.5" fill="#9aa8cf">same pipeline for a human and an AI commander</text>
+
+    <!-- arrows -->
+    <line x1="690" y1="196" x2="530" y2="196" stroke="#7aa2f7" stroke-width="2.5" marker-end="url(#arrowBlue)"/>
+    <text x="614" y="176" text-anchor="middle" font-size="13" font-weight="bold" fill="#7aa2f7">commands</text>
+    <text x="614" y="222" text-anchor="middle" font-size="11.5" fill="#7d8cb5">buy &#183; order &#183; upgrade</text>
+    <text x="614" y="238" text-anchor="middle" font-size="11.5" fill="#7d8cb5">server may reject</text>
+
+    <line x1="530" y1="316" x2="690" y2="316" stroke="#e8c06a" stroke-width="2.5" marker-end="url(#arrowGold)"/>
+    <text x="614" y="296" text-anchor="middle" font-size="13" font-weight="bold" fill="#e8c06a">state</text>
+    <text x="614" y="342" text-anchor="middle" font-size="11.5" fill="#7d8cb5">SyncVars &#183; events</text>
+    <text x="614" y="358" text-anchor="middle" font-size="11.5" fill="#7d8cb5">units @ 15 Hz, interpolated</text>
+
+    <!-- foundation -->
+    <rect x="40" y="496" width="560" height="88" rx="14" fill="#101935" stroke="#2b3a6b"/>
+    <text x="64" y="524" font-size="14" font-weight="bold" fill="#dbe4ff">Networking &#8212; FishNet Multipass</text>
+    <text x="64" y="546" font-size="12.5" fill="#9aa8cf">Tugboat (address + port) &#183; Steam P2P transport &#183; lobby &amp; invites</text>
+    <text x="64" y="566" font-size="12.5" fill="#9aa8cf">lag compensation for warlord hits, capped rewind</text>
+
+    <rect x="620" y="496" width="560" height="88" rx="14" fill="#101935" stroke="#2b3a6b"/>
+    <text x="644" y="524" font-size="14" font-weight="bold" fill="#dbe4ff">Core &#8212; shared vocabulary</text>
+    <text x="644" y="546" font-size="12.5" fill="#9aa8cf">match phases &#183; order types &#183; capture status &#183; player slots</text>
+    <text x="644" y="566" font-size="12.5" fill="#9aa8cf">fixed-step accumulator, team layout &#8212; depends on nothing</text>
+  </g>
+</svg>
