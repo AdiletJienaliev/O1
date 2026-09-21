@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Warlord — multiplayer flag-war arena built in Unity 6">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#060912"/>
+      <stop offset="52%" stop-color="#111c40"/>
+      <stop offset="100%" stop-color="#070b1a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="62%" r="58%">
+      <stop offset="0%" stop-color="#4560e6" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="#4560e6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffeeb8"/>
+      <stop offset="42%" stop-color="#e6b855"/>
+      <stop offset="100%" stop-color="#9d6c14"/>
+    </linearGradient>
+    <linearGradient id="ridge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2550"/>
+      <stop offset="100%" stop-color="#0a0f26"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#sky)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <g transform="translate(0,160)">
+
+  <!-- distant ridges -->
+  <path d="M0 236 L120 186 L214 224 L322 168 L430 226 L520 196 L610 238 L720 182 L830 230 L940 190 L1046 232 L1150 192 L1280 240 L1280 480 L0 480 Z" fill="url(#ridge)" opacity="0.85"/>
+  <path d="M0 264 L96 238 L196 266 L300 232 L410 268 L520 244 L640 272 L760 240 L880 270 L1000 242 L1120 268 L1220 244 L1280 266 L1280 480 L0 480 Z" fill="#060a18"/>
+
+  <!-- spear line -->
+  <g stroke="#0d142c" stroke-width="3" stroke-linecap="round" opacity="0.95">
+    <path d="M60 296 L66 250"/><path d="M92 298 L86 252"/><path d="M124 296 L130 246"/>
+    <path d="M156 299 L150 254"/><path d="M188 296 L194 248"/><path d="M220 298 L214 251"/>
+    <path d="M1060 296 L1066 250"/><path d="M1092 298 L1086 252"/><path d="M1124 296 L1130 246"/>
+    <path d="M1156 299 L1150 254"/><path d="M1188 296 L1194 248"/><path d="M1220 298 L1214 251"/>
+  </g>
+
+  <!-- team banners -->
+  <g stroke-linecap="round">
+    <g><path d="M282 300 L282 214" stroke="#0d142c" stroke-width="4"/><path d="M282 216 L336 228 L282 244 Z" fill="#e0574c"/></g>
+    <g><path d="M420 302 L420 206" stroke="#0d142c" stroke-width="4"/><path d="M420 208 L478 222 L420 238 Z" fill="#4d9be6"/></g>
+    <g><path d="M876 302 L876 206" stroke="#0d142c" stroke-width="4"/><path d="M876 208 L818 222 L876 238 Z" fill="#5ecb90"/></g>
+    <g><path d="M1010 300 L1010 214" stroke="#0d142c" stroke-width="4"/><path d="M1010 216 L956 228 L1010 244 Z" fill="#e8c06a"/></g>
+  </g>
+
+  <!-- central contested flag -->
+  <g>
+    <path d="M640 262 L640 150" stroke="#2c3a6b" stroke-width="5" stroke-linecap="round"/>
+    <path d="M640 152 L712 172 L640 194 Z" fill="url(#gold)"/>
+    <circle cx="640" cy="146" r="7" fill="#fff4d2"/>
+  </g>
+
+  <text x="640" y="110" text-anchor="middle" font-family="Trebuchet MS, Segoe UI, Helvetica, Arial, sans-serif" font-size="76" font-weight="bold" letter-spacing="16" fill="url(#gold)">WARLORD</text>
+  <text x="640" y="140" text-anchor="middle" font-family="Trebuchet MS, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" letter-spacing="5" fill="#93a6d6">ONE FLAG &#183; FOUR ARMIES &#183; FIFTEEN MINUTES</text>
+
+  <g font-family="Trebuchet MS, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" letter-spacing="1.5">
+    <rect x="406" y="252" width="110" height="34" rx="17" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="461" y="274" text-anchor="middle" fill="#cfd9f5">Unity 6</text>
+    <rect x="530" y="252" width="200" height="34" rx="17" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="630" y="274" text-anchor="middle" fill="#cfd9f5">FishNet &#183; host-client</text>
+    <rect x="744" y="252" width="130" height="34" rx="17" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="809" y="274" text-anchor="middle" fill="#cfd9f5">Steam P2P</text>
+  </g>
+</g>
+</svg>

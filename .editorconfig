@@ -1,0 +1,45 @@
+# Warlord — editor conventions
+# https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml,json,md}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Unity-generated files: never reformat, Unity owns them
+[*.{unity,prefab,asset,mat,anim,controller,meta}]
+trim_trailing_whitespace = false
+insert_final_newline = false
+indent_style = space
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# Namespaces are block-scoped in this project
+csharp_style_namespace_declarations = block_scoped:warning
+
+# Private fields are _camelCase
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel_case
+dotnet_naming_rule.private_fields_underscore.severity = suggestion
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+# Braces and spacing
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = when_multiline:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_sort_system_directives_first = true

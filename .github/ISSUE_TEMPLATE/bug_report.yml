@@ -1,0 +1,78 @@
+name: "🐞 Bug report · Баг"
+description: "Something in the game or the editor behaves wrong / Что-то работает не так"
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The more precisely a bug can be reproduced, the faster it dies.
+        Спасибо за репорт. Чем точнее баг воспроизводится, тем быстрее он умирает.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: "What happened / Что произошло"
+      description: "And what you expected instead / И чего вы ожидали вместо этого"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce / Шаги воспроизведения"
+      placeholder: |
+        1. Open Battle_Arena4, GameFlowConfig.skipLobby = true
+        2. Buy two archers, order "attack move" onto the central flag
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: "Where / Где"
+      options:
+        - "Editor play mode / Play mode в редакторе"
+        - "Standalone build / Собранный билд"
+        - "Both / И там, и там"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: "Network role / Сетевая роль"
+      description: "A lot of bugs only appear on one side of the wire / Многие баги видны только с одной стороны"
+      options:
+        - "Host / Хост"
+        - "Client / Клиент"
+        - "Single player with bots / Один с ботами"
+        - "Not networked / Не про сеть"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Console output / Вывод консоли"
+      description: "Errors and warnings around the moment it broke / Ошибки и предупреждения в момент поломки"
+      render: text
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment / Окружение"
+      value: |
+        - Unity: 6000.4.3f1
+        - OS / ОС: 
+        - Backend: Localhost / Steam
+        - Commit: 
+    validations:
+      required: true
+
+  - type: textarea
+    id: media
+    attributes:
+      label: "Screenshot or clip / Скриншот или ролик"
+      description: "Optional, but it usually saves a round of questions / Необязательно, но обычно экономит круг вопросов"

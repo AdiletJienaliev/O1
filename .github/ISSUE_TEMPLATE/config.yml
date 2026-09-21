@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "📖 Architecture & how to run a match / Архитектура и как запустить матч"
+    url: https://github.com/AdiletJienaliev/O1#-architecture
+    about: "The README explains the layering, the controls and the setup / README объясняет слои, управление и запуск"
+  - name: "🤝 Conventions before you open a PR / Договорённости до пул-реквеста"
+    url: https://github.com/AdiletJienaliev/O1/blob/main/CONTRIBUTING.md
+    about: "Unity-specific rules: .meta files, scenes, configs, synced enums / Правила Unity: .meta, сцены, конфиги, синкаемые enum"

@@ -1,0 +1,46 @@
+name: "✨ Feature / gameplay idea · Фича или идея"
+description: "A mechanic, a system or a tooling improvement / Механика, система или улучшение инструментов"
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: "The problem / Проблема"
+      description: "What is annoying, unclear or missing today? / Что сейчас мешает, непонятно или отсутствует?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "The proposal / Предложение"
+      description: "What should happen instead / Что должно происходить вместо этого"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Area / Область"
+      options:
+        - "Gameplay & balance / Геймплей и баланс"
+        - "Bots / Боты"
+        - "Networking & lobby / Сеть и лобби"
+        - "UI / HUD"
+        - "Art & VFX / Графика и эффекты"
+        - "Tooling & editor / Инструменты и редактор"
+        - "Other / Другое"
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: "What it changes for the player / Что это меняет для игрока"
+      description: "Balance, pacing, counters — a new mechanic has to have a counter / Баланс, темп, контрприёмы — у новой механики должен быть контрприём"
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives considered / Что ещё рассматривали"
